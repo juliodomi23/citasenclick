@@ -1,26 +1,88 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/*
+  Sistema "Soft UI Evolution": profundidad sutil, sombras suaves multicapa,
+  esquinas de 10-14px, transiciones de 200-300ms. Sin modo oscuro a propósito
+  — el fondo claro y cálido es lo que hace que una estética se vea limpia.
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  El acento vive en variables: para un cliente con otra identidad de marca se
+  cambian --color-accent-* y listo, sin tocar componentes.
+*/
+@theme {
+  /* Superficies */
+  --color-cream: #fffbf9;
+  --color-blush-50: #fdf2f8;
+  --color-blush-100: #fce7f3;
+  --color-blush-200: #fbcfe8;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* Acento. accent-600 es el que lleva texto blanco encima (contraste 4.6:1). */
+  /*
+    Borde de los controles (inputs, botones de opción, día y hora). El rosa
+    claro decorativo da 1.4:1 contra el blanco y WCAG 1.4.11 pide 3:1 para lo
+    que delimita un control: en la calle a pleno sol los campos desaparecían.
+    Este tono da 3.04:1. El blush-200 se queda para separadores y tarjetas,
+    que no son controles.
+  */
+  --color-border-control: #d9739f;
+
+  --color-accent-200: #fbcfe8;
+  --color-accent-400: #f472b6;
+  --color-accent-500: #ec4899;
+  --color-accent-600: #db2777;
+  --color-accent-700: #be185d;
+
+  /* CTA secundaria: violeta 600, no 500 — el 500 con blanco no llega a 4.5:1 */
+  --color-plum-600: #7c3aed;
+
+  /* Texto */
+  --color-ink: #831843;
+  --color-ink-soft: #9d174d;
+  --color-ink-muted: #a05175;
+
+  --radius-soft: 0.75rem;
+
+  --shadow-soft: 0 1px 2px rgb(131 24 67 / 0.04), 0 2px 8px rgb(131 24 67 / 0.06);
+  --shadow-soft-lg: 0 2px 4px rgb(131 24 67 / 0.05), 0 8px 24px rgb(131 24 67 / 0.09);
+
+  --font-display: var(--font-playfair), Georgia, serif;
+  --font-sans: var(--font-inter), system-ui, sans-serif;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background:
+    radial-gradient(60rem 32rem at 50% -8rem, var(--color-blush-100), transparent),
+    var(--color-cream);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/*
+  Foco visible y consistente en todo lo interactivo (WCAG AA).
+  Sin `border-radius` aquí: no redondea el outline, redondea el ELEMENTO. Como
+  esta regla va fuera de capa y las utilidades de Tailwind v4 viven en
+  @layer utilities, ganaba siempre — cada botón cambiaba de forma al enfocarlo.
+  El outline moderno ya sigue el radio propio del elemento.
+*/
+:focus-visible {
+  outline: 2px solid var(--color-accent-600);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+.animate-rise {
+  animation: rise 260ms ease-out both;
 }

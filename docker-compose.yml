@@ -1,0 +1,11 @@
+services:
+  citas-app:
+    build: .
+    restart: unless-stopped
+    # "expose", no "ports": el puerto solo es visible dentro de la red interna
+    # de Docker/EasyPanel. Nadie entra por http://IP:3000 saltándose el proxy
+    # con HTTPS — mismo patrón que el resto de los productos internos.
+    expose:
+      - "3000"
+    env_file:
+      - .env
