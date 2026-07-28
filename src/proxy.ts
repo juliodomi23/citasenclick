@@ -1,36 +1,18 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { secretMatches } from '@/lib/notifications';
+import { COOKIE_NAME, isValidSessionCookie } from '@/lib/superadmin-auth';
 
 /**
- * Basic Auth para /superadmin. Mismo patrón que el resto de los productos
- * internos de Ámbar Rojo (reloj-checador, menu-digital): un solo usuario
- * compartido por variables de entorno, sin tabla de usuarios propia — es
- * para nosotros, no para los negocios.
- *
- * Proxy (antes "middleware", renombrado en Next.js 16) corre siempre en
- * Node.js — ya no hace falta declarar el runtime a mano para tener
- * node:crypto (timingSafeEqual, que usa secretMatches); declararlo ahora
- * revienta el build.
+ * Protege /superadmin con una sesión propia (formulario + cookie), no con
+ * Basic Auth del navegador — ese mecanismo se rompía detrás de Cloudflare en
+ * más de un navegador (ver src/lib/superadmin-auth.ts). /superadmin/entrar
+ * es la única ruta abierta bajo /superadmin: ahí se pide la contraseña.
  */
 export function proxy(request: NextRequest) {
-  const user = process.env.SUPERADMIN_USER;
-  const pass = process.env.SUPERADMIN_PASS;
+  if (request.nextUrl.pathname === '/superadmin/entrar') return NextResponse.next();
 
-  // Sin credenciales configuradas, la ruta queda cerrada por completo en vez
-  // de abierta: un despliegue sin estas variables no debe dejar el alta de
-  // negocios al público.
-  if (!user || !pass) {
-    return new NextResponse('Superadmin no configurado', { status: 503 });
-  }
-
-  const auth = request.headers.get('authorization');
-  const expected = 'Basic ' + Buffer.from(`${user}:${pass}`).toString('base64');
-
-  if (!secretMatches(auth, expected)) {
-    return new NextResponse('Autenticación requerida', {
-      status: 401,
-      headers: { 'WWW-Authenticate': 'Basic realm="superadmin"' },
-    });
+  const cookie = request.cookies.get(COOKIE_NAME)?.value;
+  if (!isValidSessionCookie(cookie)) {
+    return NextResponse.redirect(new URL('/superadmin/entrar', request.url));
   }
 
   return NextResponse.next();

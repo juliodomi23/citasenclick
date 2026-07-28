@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { sql } from '@/lib/db';
 import { TIMEZONES } from '@/lib/panel';
 import { createBusiness } from './actions';
+import { logoutSuperadmin } from './entrar/actions';
 import { Card, Field, Input, Select, Button, Empty } from '@/components/panel-ui';
 
 type Row = {
@@ -39,7 +40,14 @@ export default async function Superadmin(props: PageProps<'/superadmin'>) {
 
   return (
     <main className="mx-auto w-full max-w-2xl px-4 pb-16 pt-8">
-      <h1 className="font-display text-2xl text-ink">Superadmin — Cita en Click</h1>
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <h1 className="font-display text-2xl text-ink">Superadmin — Cita en Click</h1>
+        <form action={logoutSuperadmin}>
+          <button className="min-h-11 cursor-pointer text-sm text-ink-muted transition-colors duration-200 hover:text-ink">
+            Salir
+          </button>
+        </form>
+      </div>
       <p className="mt-1 text-sm text-ink-muted">
         Alta de negocios del piloto. Solo para nosotros.
       </p>
