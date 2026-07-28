@@ -47,7 +47,7 @@ export default async function Page(props: PageProps<'/c/[token]'>) {
         <span className="mx-auto mt-4 block h-px w-12 bg-accent-200" />
       </header>
 
-      <section className="animate-rise mt-6 overflow-hidden rounded-2xl bg-white shadow-soft-lg">
+      <section className="animate-rise mt-6 overflow-hidden rounded-2xl bg-surface shadow-soft-lg">
         <div
           className={`flex items-center gap-3 px-6 py-5 text-white ${
             cancelled ? 'bg-ink-muted' : 'bg-accent-600'
@@ -98,11 +98,11 @@ export default async function Page(props: PageProps<'/c/[token]'>) {
                 cita para siempre. Dos pasos con <details> nativo, sin JS.
               */}
               <details className="group">
-                <summary className="flex min-h-11 cursor-pointer list-none items-center justify-center rounded-xl border border-red-300 bg-white px-4 text-sm font-medium text-red-700 transition-colors duration-200 hover:bg-red-50 group-open:hidden">
+                <summary className="flex min-h-11 cursor-pointer list-none items-center justify-center rounded-xl border border-danger-border bg-surface px-4 text-sm font-medium text-danger-text transition-colors duration-200 hover:bg-danger-bg group-open:hidden">
                   Cancelar mi cita
                 </summary>
-                <div className="rounded-xl border border-red-200 bg-red-50 p-4">
-                  <p className="text-sm text-red-900">
+                <div className="rounded-xl border border-danger-border bg-danger-bg p-4">
+                  <p className="text-sm text-danger-text">
                     ¿Seguro? Se libera tu horario y alguien más puede tomarlo.
                   </p>
                   <form action={cancelAppointment} className="mt-3">

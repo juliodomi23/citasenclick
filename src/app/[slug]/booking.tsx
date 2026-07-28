@@ -109,7 +109,7 @@ export function Booking({ slug, timezone, bookingWindowDays, whatsappPhone, serv
 
   if (done) {
     return (
-      <section className="animate-rise mt-8 overflow-hidden rounded-2xl bg-white shadow-soft-lg">
+      <section className="animate-rise mt-8 overflow-hidden rounded-2xl bg-surface shadow-soft-lg">
         <div className="flex flex-col items-center gap-3 bg-accent-600 px-6 py-8 text-center text-white">
           <span className="flex h-14 w-14 items-center justify-center rounded-full bg-white/20">
             <Check className="h-7 w-7" />
@@ -252,7 +252,7 @@ export function Booking({ slug, timezone, bookingWindowDays, whatsappPhone, serv
                 key={d}
                 type="button"
                 onClick={() => setDate(d)}
-                className="min-h-11 cursor-pointer whitespace-nowrap rounded-xl border border-border-control bg-white px-2 text-sm text-ink shadow-soft transition-colors duration-200 first-letter:uppercase hover:border-accent-400 hover:bg-blush-50"
+                className="min-h-11 cursor-pointer whitespace-nowrap rounded-xl border border-border-control bg-surface px-2 text-sm text-ink shadow-soft transition-colors duration-200 first-letter:uppercase hover:border-accent-400 hover:bg-blush-50"
               >
                 {fmtDate(d, timezone)}
               </button>
@@ -291,7 +291,7 @@ export function Booking({ slug, timezone, bookingWindowDays, whatsappPhone, serv
                   key={s}
                   type="button"
                   onClick={() => setSlot(s)}
-                  className="min-h-11 cursor-pointer rounded-xl border border-border-control bg-white text-sm font-medium text-ink shadow-soft transition-colors duration-200 hover:border-accent-400 hover:bg-blush-50"
+                  className="min-h-11 cursor-pointer rounded-xl border border-border-control bg-surface text-sm font-medium text-ink shadow-soft transition-colors duration-200 hover:border-accent-400 hover:bg-blush-50"
                 >
                   {fmtTime(s, timezone)}
                 </button>
@@ -310,7 +310,7 @@ export function Booking({ slug, timezone, bookingWindowDays, whatsappPhone, serv
           />
           <form
             onSubmit={submit}
-            className="animate-rise space-y-4 rounded-2xl bg-white p-5 shadow-soft-lg"
+            className="animate-rise space-y-4 rounded-2xl bg-surface p-5 shadow-soft-lg"
           >
             <h2 className="font-display text-xl">Tus datos</h2>
 
@@ -356,7 +356,7 @@ export function Booking({ slug, timezone, bookingWindowDays, whatsappPhone, serv
               <p
                 id="error-form"
                 role="alert"
-                className="flex items-start gap-2 rounded-xl bg-red-50 p-3 text-sm text-red-800"
+                className="flex items-start gap-2 rounded-xl bg-danger-bg p-3 text-sm text-danger-text"
               >
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                 {error}
@@ -400,7 +400,7 @@ function Progress({ step }: { step: number }) {
 /** Callejón sin salida: siempre con una puerta al WhatsApp del negocio. */
 function Rescate({ texto, whatsappPhone }: { texto: string; whatsappPhone: string | null }) {
   return (
-    <div className="rounded-xl border border-blush-200 bg-white p-4 text-sm shadow-soft">
+    <div className="rounded-xl border border-blush-200 bg-surface p-4 text-sm shadow-soft">
       <p className="flex items-start gap-2 text-ink-soft">
         <Calendar className="mt-0.5 h-4 w-4 shrink-0" />
         {texto}
@@ -441,7 +441,7 @@ function Step({ n, title, children }: { n: number; title: string; children: Reac
 /** Paso ya resuelto: ocupa una línea y se puede volver a abrir. */
 function Summary({ label, value, onEdit }: { label: string; value: string; onEdit: () => void }) {
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-blush-100 bg-white/70 px-4 py-2.5 shadow-soft">
+    <div className="flex items-center gap-3 rounded-xl border border-blush-100 bg-surface/70 px-4 py-2.5 shadow-soft">
       <Check className="h-4 w-4 shrink-0 text-accent-600" />
       <p className="min-w-0 flex-1 text-sm">
         <span className="text-ink-muted">{label}: </span>
@@ -493,7 +493,7 @@ function Options({ items }: { items: Option[] }) {
           key={it.key}
           type="button"
           onClick={it.onSelect}
-          className="group flex min-h-14 w-full cursor-pointer items-center justify-between gap-3 rounded-xl border border-border-control bg-white px-4 py-3 text-left shadow-soft transition-colors duration-200 hover:border-accent-400 hover:bg-blush-50"
+          className="group flex min-h-14 w-full cursor-pointer items-center justify-between gap-3 rounded-xl border border-border-control bg-surface px-4 py-3 text-left shadow-soft transition-colors duration-200 hover:border-accent-400 hover:bg-blush-50"
         >
           <span className="min-w-0">
             <span className="block font-medium text-ink">{it.label}</span>

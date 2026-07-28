@@ -22,9 +22,9 @@ const STATUS_LABEL: Record<string, string> = {
 
 // El color no es el único indicador: cada estado lleva también su etiqueta.
 const STATUS_CHIP: Record<string, string> = {
-  cancelled: 'bg-red-50 text-red-700 border-red-200',
-  no_show: 'bg-amber-50 text-amber-800 border-amber-200',
-  completed: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+  cancelled: 'bg-danger-bg text-danger-text border-danger-border',
+  no_show: 'bg-warning-bg text-warning-text border-warning-border',
+  completed: 'bg-success-bg text-success-text border-success-border',
 };
 
 export default async function Panel(props: PageProps<'/panel'>) {
@@ -67,7 +67,7 @@ export default async function Panel(props: PageProps<'/panel'>) {
 
   return (
     <main>
-      <div className="mt-5 inline-flex rounded-xl border border-blush-200 bg-white p-1 shadow-soft">
+      <div className="mt-5 inline-flex rounded-xl border border-blush-200 bg-surface p-1 shadow-soft">
         <ViewTab date={date} view="day" active={!week} label="Día" />
         <ViewTab date={date} view="week" active={week} label="Semana" />
       </div>
@@ -91,7 +91,7 @@ export default async function Panel(props: PageProps<'/panel'>) {
       </nav>
 
       {q.error === 'ocupado' && (
-        <p role="alert" className="mt-4 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+        <p role="alert" className="mt-4 flex items-start gap-2 rounded-xl border border-warning-border bg-warning-bg p-3 text-sm text-warning-text">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
           No se pudo reactivar: ese horario ya lo tomó otra cita.
         </p>
@@ -146,7 +146,7 @@ const fmtDay = (date: string, tz: string) =>
 
 function Empty() {
   return (
-    <div className="rounded-2xl border border-dashed border-blush-200 bg-white/60 px-6 py-10 text-center">
+    <div className="rounded-2xl border border-dashed border-blush-200 bg-surface/60 px-6 py-10 text-center">
       <Calendar className="mx-auto h-6 w-6 text-accent-400" />
       <p className="mt-2 text-sm text-ink-muted">No hay citas este día.</p>
     </div>
@@ -164,7 +164,7 @@ function ApptCard({
 
   return (
     <li
-      className={`overflow-hidden rounded-2xl border bg-white shadow-soft ${
+      className={`overflow-hidden rounded-2xl border bg-surface shadow-soft ${
         closed ? 'border-blush-100' : 'border-blush-200'
       }`}
     >
@@ -256,7 +256,7 @@ function StepLink({
     <Link
       href={`/panel?date=${to}&view=${view}`}
       aria-label={label}
-      className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-blush-200 bg-white text-ink-soft shadow-soft transition-colors duration-200 hover:border-accent-400 hover:bg-blush-50"
+      className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-blush-200 bg-surface text-ink-soft shadow-soft transition-colors duration-200 hover:border-accent-400 hover:bg-blush-50"
     >
       {dir === 'prev' ? <ChevronLeft /> : <ChevronRight />}
     </Link>
@@ -273,10 +273,10 @@ function StatusButton({
   // la misma cadena las resuelve el orden del CSS, no el de la cadena, y el
   // botón primario acababa en blanco sobre blanco.
   const tone = danger
-    ? 'border-red-200 bg-white text-red-700 hover:bg-red-50'
+    ? 'border-danger-border bg-surface text-danger-text hover:bg-danger-bg'
     : primary
       ? 'border-accent-600 bg-accent-600 text-white hover:bg-accent-700'
-      : 'border-blush-200 bg-white text-ink-soft hover:bg-blush-50';
+      : 'border-blush-200 bg-surface text-ink-soft hover:bg-blush-50';
 
   return (
     <form action={setStatus} className={className.includes("ml-auto") ? "ml-auto" : undefined}>

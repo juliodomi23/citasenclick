@@ -4,6 +4,7 @@ import { TIMEZONES } from '@/lib/panel';
 import { createBusiness } from './actions';
 import { logoutSuperadmin } from './entrar/actions';
 import { Card, Field, Input, Select, Button, Empty } from '@/components/panel-ui';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { DeleteBusinessForm } from './delete-button';
 
 type Row = {
@@ -44,29 +45,32 @@ export default async function Superadmin(props: PageProps<'/superadmin'>) {
     <main className="mx-auto w-full max-w-2xl px-4 pb-16 pt-8">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <h1 className="font-display text-2xl text-ink">Superadmin — Cita en Click</h1>
-        <form action={logoutSuperadmin}>
-          <button className="min-h-11 cursor-pointer text-sm text-ink-muted transition-colors duration-200 hover:text-ink">
-            Salir
-          </button>
-        </form>
+        <div className="flex items-center gap-3">
+          <ThemeToggle />
+          <form action={logoutSuperadmin}>
+            <button className="min-h-11 cursor-pointer text-sm text-ink-muted transition-colors duration-200 hover:text-ink">
+              Salir
+            </button>
+          </form>
+        </div>
       </div>
       <p className="mt-1 text-sm text-ink-muted">
         Alta de negocios del piloto. Solo para nosotros.
       </p>
 
       {errorMsg && (
-        <p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+        <p role="alert" className="mt-4 rounded-xl border border-danger-border bg-danger-bg p-3 text-sm text-danger-text">
           {errorMsg}
         </p>
       )}
       {typeof q.ok === 'string' && (
-        <p role="status" className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+        <p role="status" className="mt-4 rounded-xl border border-success-border bg-success-bg p-3 text-sm text-success-text">
           <strong>{q.ok}</strong> está listo. El dueño ya puede pedir su enlace en{' '}
           <Link href="/entrar" className="underline">/entrar</Link> con el teléfono que registraste.
         </p>
       )}
       {typeof q.deleted === 'string' && (
-        <p role="status" className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+        <p role="status" className="mt-4 rounded-xl border border-success-border bg-success-bg p-3 text-sm text-success-text">
           <strong>{q.deleted}</strong> fue eliminado completamente de la base de datos.
         </p>
       )}
@@ -115,7 +119,7 @@ export default async function Superadmin(props: PageProps<'/superadmin'>) {
       ) : (
         <ul className="space-y-2">
           {businesses.map((b) => (
-            <li key={b.slug} className="rounded-xl border border-blush-200 bg-white p-4 shadow-soft">
+            <li key={b.slug} className="rounded-xl border border-blush-200 bg-surface p-4 shadow-soft">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <div className="flex-1">
                   <p className="font-medium text-ink">{b.name}</p>

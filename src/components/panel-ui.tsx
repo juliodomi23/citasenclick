@@ -4,7 +4,7 @@ export function Card({ title, hint, children }: {
   title?: string; hint?: string; children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-blush-200 bg-white p-5 shadow-soft">
+    <section className="rounded-2xl border border-blush-200 bg-surface p-5 shadow-soft">
       {title && <h2 className="font-display text-lg text-ink">{title}</h2>}
       {hint && <p className="mt-1 text-sm text-ink-muted">{hint}</p>}
       <div className={title || hint ? 'mt-4' : ''}>{children}</div>
@@ -45,10 +45,10 @@ type ButtonTone = 'primary' | 'ghost' | 'danger';
 
 const TONES: Record<ButtonTone, string> = {
   primary: 'border-accent-600 bg-accent-600 text-white hover:bg-accent-700',
-  ghost: 'border-border-control bg-white text-ink-soft hover:bg-blush-50',
+  ghost: 'border-border-control bg-surface text-ink-soft hover:bg-blush-50',
   // El fondo va en cada variante, nunca en la base: dos clases de background en
   // la misma cadena las resuelve el orden del CSS, no el de la cadena.
-  danger: 'border-red-200 bg-white text-red-700 hover:bg-red-50',
+  danger: 'border-danger-border bg-surface text-danger-text hover:bg-danger-bg',
 };
 
 export function Button({
@@ -72,7 +72,7 @@ export function Guardado({ visible }: { visible: boolean }) {
   return (
     <p
       role="status"
-      className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"
+      className="rounded-xl border border-success-border bg-success-bg px-4 py-3 text-sm text-success-text"
     >
       Cambios guardados.
     </p>

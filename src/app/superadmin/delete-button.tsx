@@ -16,7 +16,7 @@ export function DeleteBusinessForm({ slug, name }: { slug: string; name: string 
       <input type="hidden" name="slug" value={slug} />
       <button
         type="submit"
-        className="inline-flex min-h-9 items-center gap-2 rounded-lg bg-red-50 px-2 text-xs font-medium text-red-700 transition-colors duration-200 hover:bg-red-100"
+        className="inline-flex min-h-9 items-center gap-2 rounded-lg bg-danger-bg px-2 text-xs font-medium text-danger-text transition-colors duration-200 hover:bg-danger-border"
       >
         <Trash2 className="h-4 w-4" />
         Eliminar

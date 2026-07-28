@@ -27,7 +27,22 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es-MX" className={`${playfair.variable} ${inter.variable} h-full antialiased`}>
+    <html
+      lang="es-MX"
+      className={`${playfair.variable} ${inter.variable} h-full antialiased`}
+      suppressHydrationWarning
+    >
+      <head>
+        {/*
+          Corre antes del primer paint: sin esto, la página siempre nace
+          clara y "salta" a oscura una vez que React monta el toggle.
+        */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('theme');var dark=t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches;if(dark){document.documentElement.classList.add('dark')}}catch(e){}})()`,
+          }}
+        />
+      </head>
       <body className="flex min-h-full flex-col">{children}</body>
     </html>
   );

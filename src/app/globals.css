@@ -2,18 +2,25 @@
 
 /*
   Sistema "Soft UI Evolution": profundidad sutil, sombras suaves multicapa,
-  esquinas de 10-14px, transiciones de 200-300ms. Sin modo oscuro a propósito
-  — el fondo claro y cálido es lo que hace que una estética se vea limpia.
+  esquinas de 10-14px, transiciones de 200-300ms.
 
   El acento vive en variables: para un cliente con otra identidad de marca se
-  cambian --color-accent-* y listo, sin tocar componentes.
+  cambian --color-accent-* y listo, sin tocar componentes. El modo oscuro usa
+  el mismo truco: los tokens de abajo se redefinen bajo .dark y como Tailwind
+  v4 referencia la variable (no el valor) en cada utilidad, todo el sitio
+  cambia de tema sin tocar un componente — salvo los pocos lugares que usaban
+  colores de paleta crudos (bg-white, red-50, emerald-800...) en vez de un
+  token; esos se migraron a --color-surface/success/danger/warning.
 */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   /* Superficies */
   --color-cream: #fffbf9;
   --color-blush-50: #fdf2f8;
   --color-blush-100: #fce7f3;
   --color-blush-200: #fbcfe8;
+  --color-surface: #ffffff;
 
   /* Acento. accent-600 es el que lleva texto blanco encima (contraste 4.6:1). */
   /*
@@ -39,6 +46,20 @@
   --color-ink-soft: #9d174d;
   --color-ink-muted: #a05175;
 
+  /* Estados: reemplazan los emerald-/red-/amber-/orange- sueltos de Tailwind,
+     que no tenían variante oscura. */
+  --color-success-bg: #ecfdf5;
+  --color-success-border: #a7f3d0;
+  --color-success-text: #065f46;
+
+  --color-danger-bg: #fef2f2;
+  --color-danger-border: #fecaca;
+  --color-danger-text: #991b1b;
+
+  --color-warning-bg: #fffbeb;
+  --color-warning-border: #fde68a;
+  --color-warning-text: #92400e;
+
   --radius-soft: 0.75rem;
 
   --shadow-soft: 0 1px 2px rgb(131 24 67 / 0.04), 0 2px 8px rgb(131 24 67 / 0.06);
@@ -48,6 +69,42 @@
   --font-sans: var(--font-inter), system-ui, sans-serif;
 }
 
+/*
+  Mismos tokens, valores oscuros. Fondo cálido casi negro (no negro puro,
+  para no perder la identidad rosa/vino) con las superficies un punto más
+  claras que el fondo, como Material dark: así una tarjeta se distingue de
+  la página sin depender solo de la sombra.
+*/
+.dark {
+  --color-cream: #170f14;
+  --color-blush-50: #241621;
+  --color-blush-100: #2c1a26;
+  --color-blush-200: #4a2438;
+  --color-surface: #211219;
+
+  --color-border-control: #e58fb4;
+
+  --color-ink: #fce7f0;
+  --color-ink-soft: #f3b8d4;
+  --color-ink-muted: #cf93b1;
+
+  /* accent-700 es el tono de los links (text-accent-700): el original
+     (be185d) es casi negro y desaparecía sobre el fondo oscuro. */
+  --color-accent-700: #f9a8d4;
+
+  --color-success-bg: #052e22;
+  --color-success-border: #0d5a41;
+  --color-success-text: #6ee7b7;
+
+  --color-danger-bg: #2e0c0c;
+  --color-danger-border: #7f1d1d;
+  --color-danger-text: #fca5a5;
+
+  --color-warning-bg: #2e2007;
+  --color-warning-border: #92601a;
+  --color-warning-text: #fcd34d;
+}
+
 body {
   background:
     radial-gradient(60rem 32rem at 50% -8rem, var(--color-blush-100), transparent),
@@ -55,6 +112,7 @@ body {
   color: var(--color-ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  transition: background-color 200ms ease, color 200ms ease;
 }
 
 /*

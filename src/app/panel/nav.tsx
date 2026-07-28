@@ -23,7 +23,7 @@ export function PanelNav() {
 
   return (
     <nav className="mt-5">
-      <ul className="flex flex-wrap gap-1 rounded-xl border border-blush-200 bg-white p-1 shadow-soft sm:flex-nowrap">
+      <ul className="flex flex-wrap gap-1 rounded-xl border border-blush-200 bg-surface p-1 shadow-soft sm:flex-nowrap">
         {TABS.map((t) => {
           const active = t.href === '/panel' ? pathname === '/panel' : pathname.startsWith(t.href);
           return (

@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { currentSession } from '@/lib/auth';
 import { login, requestLink } from './actions';
 import { Field, Input, Button } from '@/components/panel-ui';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { MessageCircle, Check, AlertTriangle, Lock } from '@/components/icons';
 
 export default async function Entrar(props: PageProps<'/entrar'>) {
@@ -13,6 +14,10 @@ export default async function Entrar(props: PageProps<'/entrar'>) {
 
   return (
     <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center px-4 py-16">
+      <div className="flex justify-end">
+        <ThemeToggle />
+      </div>
+
       <header className="text-center">
         <h1 className="font-display text-3xl text-ink">Entrar a tu panel</h1>
         <p className="mt-2 text-sm text-ink-muted">
@@ -21,7 +26,7 @@ export default async function Entrar(props: PageProps<'/entrar'>) {
       </header>
 
       {enviado ? (
-        <section className="mt-8 rounded-2xl bg-white p-6 text-center shadow-soft-lg">
+        <section className="mt-8 rounded-2xl bg-surface p-6 text-center shadow-soft-lg">
           <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-accent-600 text-white">
             <Check className="h-6 w-6" />
           </span>
@@ -53,23 +58,23 @@ export default async function Entrar(props: PageProps<'/entrar'>) {
           </a>
         </section>
       ) : (
-        <form action={login} className="mt-8 space-y-4 rounded-2xl bg-white p-6 shadow-soft-lg">
+        <form action={login} className="mt-8 space-y-4 rounded-2xl bg-surface p-6 shadow-soft-lg">
           {q.error === 'telefono' && (
-            <p role="alert" className="flex items-start gap-2 rounded-xl bg-red-50 p-3 text-sm text-red-800">
+            <p role="alert" className="flex items-start gap-2 rounded-xl bg-danger-bg p-3 text-sm text-danger-text">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
               Ese número no parece válido. Deben ser 10 dígitos.
             </p>
           )}
 
           {q.error === 'credenciales' && (
-            <p role="alert" className="flex items-start gap-2 rounded-xl bg-red-50 p-3 text-sm text-red-800">
+            <p role="alert" className="flex items-start gap-2 rounded-xl bg-danger-bg p-3 text-sm text-danger-text">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
               Número o contraseña incorrectos.
             </p>
           )}
 
           {q.error === 'sin-cuenta' && (
-            <p role="alert" className="flex items-start gap-2 rounded-xl bg-orange-50 p-3 text-sm text-orange-800">
+            <p role="alert" className="flex items-start gap-2 rounded-xl bg-warning-bg p-3 text-sm text-warning-text">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
               Ese número no tiene cuenta aún. Pide un enlace de acceso al negocio.
             </p>

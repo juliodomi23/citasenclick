@@ -62,7 +62,7 @@ export default async function Horarios(props: PageProps<'/panel/horarios'>) {
                 className={`flex min-h-11 cursor-pointer items-center whitespace-nowrap rounded-xl border px-4 text-sm transition-colors duration-200 ${
                   s.id === current.id
                     ? 'border-accent-600 bg-accent-600 font-medium text-white'
-                    : 'border-blush-200 bg-white text-ink-soft hover:bg-blush-50'
+                    : 'border-blush-200 bg-surface text-ink-soft hover:bg-blush-50'
                 }`}
               >
                 {s.name}
@@ -118,7 +118,7 @@ export default async function Horarios(props: PageProps<'/panel/horarios'>) {
                             <input type="hidden" name="id" value={r.id} />
                             <button
                               aria-label={`Quitar el rango de ${hhmm(r.start_time)} a ${hhmm(r.end_time)} del ${label}`}
-                              className="min-h-11 cursor-pointer px-2 text-sm text-red-700 transition-colors duration-200 hover:text-red-800"
+                              className="min-h-11 cursor-pointer px-2 text-sm text-danger-text transition-opacity duration-200 hover:opacity-80"
                             >
                               Quitar
                             </button>
@@ -191,7 +191,7 @@ export default async function Horarios(props: PageProps<'/panel/horarios'>) {
                 </span>
                 <form action={deleteOverride}>
                   <input type="hidden" name="id" value={o.id} />
-                  <button className="min-h-11 cursor-pointer px-2 text-red-700 transition-colors duration-200 hover:text-red-800">
+                  <button className="min-h-11 cursor-pointer px-2 text-danger-text transition-opacity duration-200 hover:opacity-80">
                     Quitar
                   </button>
                 </form>
