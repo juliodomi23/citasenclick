@@ -1,9 +1,10 @@
 import Link from 'next/link';
 import { sql } from '@/lib/db';
 import { TIMEZONES } from '@/lib/panel';
-import { createBusiness } from './actions';
+import { createBusiness, deleteBusiness } from './actions';
 import { logoutSuperadmin } from './entrar/actions';
 import { Card, Field, Input, Select, Button, Empty } from '@/components/panel-ui';
+import { Trash2 } from '@/components/icons';
 
 type Row = {
   slug: string;
@@ -21,6 +22,7 @@ const ERROR_LABEL: Record<string, string> = {
   zona: 'Zona horaria inválida.',
   telefono: 'El WhatsApp del dueño debe ser un número mexicano de 10 dígitos.',
   'telefono-negocio': 'El WhatsApp del negocio debe ser un número mexicano de 10 dígitos.',
+  'no-existe': 'Ese negocio no existe.',
 };
 
 export default async function Superadmin(props: PageProps<'/superadmin'>) {
@@ -61,6 +63,11 @@ export default async function Superadmin(props: PageProps<'/superadmin'>) {
         <p role="status" className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
           <strong>{q.ok}</strong> está listo. El dueño ya puede pedir su enlace en{' '}
           <Link href="/entrar" className="underline">/entrar</Link> con el teléfono que registraste.
+        </p>
+      )}
+      {typeof q.deleted === 'string' && (
+        <p role="status" className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+          <strong>{q.deleted}</strong> fue eliminado completamente de la base de datos.
         </p>
       )}
 
@@ -110,18 +117,39 @@ export default async function Superadmin(props: PageProps<'/superadmin'>) {
           {businesses.map((b) => (
             <li key={b.slug} className="rounded-xl border border-blush-200 bg-white p-4 shadow-soft">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <p className="font-medium text-ink">{b.name}</p>
-                <a
-                  href={`${base}/${b.slug}`}
-                  className="text-sm text-accent-700 underline"
-                >
-                  /{b.slug}
-                </a>
+                <div className="flex-1">
+                  <p className="font-medium text-ink">{b.name}</p>
+                  <p className="mt-1 text-sm text-ink-muted">
+                    {b.servicios} servicio{b.servicios === 1 ? '' : 's'} · {b.citas} cita{b.citas === 1 ? '' : 's'} ·{' '}
+                    {b.owner_phone ?? 'sin dueño registrado'}
+                  </p>
+                </div>
+                <div className="flex flex-col items-end gap-2">
+                  <a
+                    href={`${base}/${b.slug}`}
+                    className="text-sm text-accent-700 underline"
+                  >
+                    /{b.slug}
+                  </a>
+                  <form
+                    action={deleteBusiness}
+                    onSubmit={(e) => {
+                      if (!confirm(`¿Estás seguro de que quieres eliminar "${b.name}" completamente? Se borrará todo (usuarios, citas, servicios, etc.)`)) {
+                        e.preventDefault();
+                      }
+                    }}
+                  >
+                    <input type="hidden" name="slug" value={b.slug} />
+                    <button
+                      type="submit"
+                      className="inline-flex min-h-9 items-center gap-2 rounded-lg bg-red-50 px-2 text-xs font-medium text-red-700 transition-colors duration-200 hover:bg-red-100"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Eliminar
+                    </button>
+                  </form>
+                </div>
               </div>
-              <p className="mt-1 text-sm text-ink-muted">
-                {b.servicios} servicio{b.servicios === 1 ? '' : 's'} · {b.citas} cita{b.citas === 1 ? '' : 's'} ·{' '}
-                {b.owner_phone ?? 'sin dueño registrado'}
-              </p>
             </li>
           ))}
         </ul>

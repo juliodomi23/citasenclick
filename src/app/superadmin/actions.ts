@@ -48,3 +48,24 @@ export async function createBusiness(form: FormData) {
   revalidatePath('/superadmin');
   redirect(`/superadmin?ok=${slug}`);
 }
+
+/**
+ * Elimina un negocio completo: toda la cascada (usuarios, citas, servicios, etc).
+ * ON DELETE CASCADE se encarga del resto.
+ */
+export async function deleteBusiness(form: FormData) {
+  const slug = str(form, 'slug');
+
+  if (!slug || !isValidSlug(slug)) redirect('/superadmin?error=slug');
+
+  const business = (await sql`
+    select id from businesses where slug = ${slug}
+  `) as { id: string }[];
+
+  if (business.length === 0) redirect('/superadmin?error=no-existe');
+
+  await sql`delete from businesses where slug = ${slug}`;
+
+  revalidatePath('/superadmin');
+  redirect(`/superadmin?deleted=${slug}`);
+}
