@@ -82,10 +82,10 @@ export default async function Entrar(props: PageProps<'/entrar'>) {
             />
           </Field>
 
-          <Field label="Contraseña">
+          <Field label="Contraseña" hint="déjalo en blanco si aún no tienes una">
             <Input
               name="password" type="password" autoComplete="current-password"
-              required placeholder="Tu contraseña"
+              placeholder="Tu contraseña"
             />
           </Field>
 
@@ -93,6 +93,11 @@ export default async function Entrar(props: PageProps<'/entrar'>) {
             <Lock className="h-4 w-4" />
             Entrar
           </Button>
+
+          <p className="text-center text-xs text-ink-muted">
+            ¿Primera vez o no tienes contraseña? Escribe tu WhatsApp arriba y
+            dale a Entrar — te mandamos el enlace para crearla.
+          </p>
         </form>
       )}
 

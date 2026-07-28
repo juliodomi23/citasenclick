@@ -185,22 +185,35 @@ export async function setupPasswordAndLogin(
   return true;
 }
 
+export type LoginResult =
+  | { status: 'ok' }
+  | { status: 'needs-setup'; link: { token: string; name: string; phone: string } }
+  | { status: 'invalid' };
+
 /**
- * Login normal: verifica número + contraseña
+ * Login normal: verifica número + contraseña. Si el usuario existe pero
+ * todavía no tiene contraseña (recién dado de alta por el superadmin), en vez
+ * de rechazarlo genera un link de setup — así no se queda atorado en /entrar
+ * sin saber que le falta crear su contraseña.
  */
-export async function loginWithPassword(
+export async function attemptLogin(
   phoneE164: string,
   password: string
-): Promise<boolean> {
+): Promise<LoginResult> {
   const users = (await sql`
-    select u.id, u.password from users u
-     where u.phone = ${phoneE164}
+    select id, password from users where phone = ${phoneE164}
   `) as { id: string; password: string | null }[];
 
   const user = users[0];
-  if (!user || !user.password) return false;
+  if (!user) return { status: 'invalid' };
 
-  if (!(await verifyPassword(password, user.password))) return false;
+  if (!user.password) {
+    const link = await createLoginToken(phoneE164);
+    if (!link) return { status: 'invalid' };
+    return { status: 'needs-setup', link };
+  }
+
+  if (!(await verifyPassword(password, user.password))) return { status: 'invalid' };
 
   const session = (await sql`
     insert into sessions (user_id, expires_at)
@@ -216,5 +229,5 @@ export async function loginWithPassword(
     path: '/',
     maxAge: SESSION_DAYS * 24 * 60 * 60,
   });
-  return true;
+  return { status: 'ok' };
 }
