@@ -1,13 +1,26 @@
 'use server';
 
 import { redirect } from 'next/navigation';
-import { createLoginToken, destroySession } from '@/lib/auth';
+import { createLoginToken, loginWithPassword, destroySession } from '@/lib/auth';
 import { normalizePhoneMX } from '@/lib/validation';
 
 /**
- * Pide un link de acceso por WhatsApp. Va directo al webhook de n8n, sin pasar
- * por la outbox: quien pide un link está esperando frente a la pantalla, y el
- * cron corre cada 5 minutos.
+ * Login con número + contraseña
+ */
+export async function login(formData: FormData) {
+  const phone = normalizePhoneMX(String(formData.get('phone') ?? ''));
+  const password = String(formData.get('password') ?? '');
+
+  if (!phone) redirect('/entrar?error=telefono');
+
+  const ok = await loginWithPassword(phone, password);
+  if (!ok) redirect('/entrar?error=credenciales');
+
+  redirect('/panel');
+}
+
+/**
+ * Pide un link de acceso por WhatsApp (primera vez). Va directo al webhook de n8n.
  */
 export async function requestLink(formData: FormData) {
   const phone = normalizePhoneMX(String(formData.get('phone') ?? ''));
@@ -15,8 +28,7 @@ export async function requestLink(formData: FormData) {
 
   const link = await createLoginToken(phone);
 
-  // Respuesta idéntica exista o no el teléfono: si no, la pantalla se convierte
-  // en un detector de qué números están dados de alta.
+  // Respuesta idéntica exista o no el teléfono: privacidad
   let onScreen: string | null = null;
 
   if (link) {
@@ -34,24 +46,17 @@ export async function requestLink(formData: FormData) {
             nombre: link.name,
             telefono: link.phone,
             negocio: link.name,
-            manage_url: url,
+            setup_url: url,
           }),
           signal: AbortSignal.timeout(10_000),
         });
       } catch {
-        // Se traga el error a propósito: decir "no se pudo enviar" delataría
-        // que el teléfono sí existe. Queda en el log del servidor.
         console.error('[login] no se pudo enviar el link a n8n');
       }
     } else {
       console.warn(`[login] N8N_WEBHOOK_URL sin configurar. Link de acceso: ${url}`);
     }
 
-    // Piloto sin n8n armado: en vez de depender de que alguien saque el link
-    // de los logs del VPS, el dueño se autoatiende. Se apaga poniendo
-    // SHOW_LOGIN_LINK≠"true" en cuanto n8n esté enviando por WhatsApp de verdad.
-    // Aceptable con la base de usuarios chica y conocida del piloto: solo hay
-    // cuenta para los negocios que nosotros mismos dimos de alta.
     if (process.env.SHOW_LOGIN_LINK === 'true') onScreen = url;
   }
 

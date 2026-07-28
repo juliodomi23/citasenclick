@@ -28,6 +28,7 @@ create table users (
   email text unique,
   phone text unique,                            -- E.164, para el magic link
   role text not null check (role in ('owner','staff')),
+  password text,                                -- NULL = sin contraseña aún (primera vez)
   created_at timestamptz default now(),
   constraint users_contact_present check (phone is not null or email is not null)
 );

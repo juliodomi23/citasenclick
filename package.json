@@ -9,6 +9,8 @@
     "test": "tsx --test src/lib/*.test.ts"
   },
   "dependencies": {
+    "@types/bcrypt": "^6.0.0",
+    "bcrypt": "^6.0.0",
     "luxon": "^3.7.2",
     "next": "16.2.12",
     "postgres": "^3.4.9",

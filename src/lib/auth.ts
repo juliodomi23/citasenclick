@@ -1,4 +1,5 @@
 import { cookies } from 'next/headers';
+import { hash, compare } from 'bcrypt';
 import { sql } from './db';
 import type { PanelBusiness } from './panel';
 
@@ -120,4 +121,100 @@ export async function destroySession() {
   const token = jar.get(COOKIE)?.value;
   if (token) await sql`delete from sessions where token = ${token}`;
   jar.delete(COOKIE);
+}
+
+/** Valida que la contraseña cumpla: mayúscula + número + 8+ caracteres */
+export function validatePassword(password: string): boolean {
+  return (
+    password.length >= 8 &&
+    /[A-Z]/.test(password) &&
+    /[0-9]/.test(password)
+  );
+}
+
+/** Hashea una contraseña con bcrypt (costo 10) */
+export async function hashPassword(password: string): Promise<string> {
+  return hash(password, 10);
+}
+
+/** Compara contraseña en texto plano con hash */
+export async function verifyPassword(password: string, hash: string): Promise<boolean> {
+  return compare(password, hash);
+}
+
+/**
+ * Crea la contraseña en la primera entrada y establece sesión.
+ * El token debe ser válido y no usado.
+ */
+export async function setupPasswordAndLogin(
+  token: string,
+  password: string
+): Promise<boolean> {
+  if (!validatePassword(password)) return false;
+
+  const claimed = (await sql`
+    update login_tokens set used_at = now()
+     where token = ${token} and used_at is null and expires_at > now()
+    returning user_id
+  `) as { user_id: string }[];
+
+  if (claimed.length === 0) return false;
+
+  const userId = claimed[0].user_id;
+  const hashedPassword = await hashPassword(password);
+
+  await sql`
+    update users set password = ${hashedPassword}
+     where id = ${userId}
+  `;
+
+  const session = (await sql`
+    insert into sessions (user_id, expires_at)
+    values (${userId}, now() + make_interval(days => ${SESSION_DAYS}))
+    returning token
+  `) as { token: string }[];
+
+  const jar = await cookies();
+  jar.set(COOKIE, session[0].token, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+    maxAge: SESSION_DAYS * 24 * 60 * 60,
+  });
+  return true;
+}
+
+/**
+ * Login normal: verifica número + contraseña
+ */
+export async function loginWithPassword(
+  phoneE164: string,
+  password: string
+): Promise<boolean> {
+  const users = (await sql`
+    select u.id, u.password from users u
+     where u.phone = ${phoneE164}
+  `) as { id: string; password: string | null }[];
+
+  const user = users[0];
+  if (!user || !user.password) return false;
+
+  if (!(await verifyPassword(password, user.password))) return false;
+
+  const session = (await sql`
+    insert into sessions (user_id, expires_at)
+    values (${user.id}, now() + make_interval(days => ${SESSION_DAYS}))
+    returning token
+  `) as { token: string }[];
+
+  const jar = await cookies();
+  jar.set(COOKIE, session[0].token, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+    maxAge: SESSION_DAYS * 24 * 60 * 60,
+  });
+  return true;
 }

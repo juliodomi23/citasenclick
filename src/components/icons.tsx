@@ -53,3 +53,9 @@ export const AlertTriangle = ({ className = 'h-5 w-5' }: Props) => (
     <path d="M12 9v4M12 17h.01" />
   </svg>
 );
+
+export const Lock = ({ className = 'h-5 w-5' }: Props) => (
+  <svg {...base} className={className}>
+    <path d="M12 2a5 5 0 0 0-5 5v4H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5m0 2a3 3 0 0 1 3 3v4H9V7a3 3 0 0 1 3-3m0 10a1 1 0 1 1 0 2 1 1 0 0 1 0-2" />
+  </svg>
+);
