@@ -103,6 +103,25 @@ export const unionSlots = (byStaff: Map<string, string[]>): string[] =>
   [...new Set([...byStaff.values()].flat())].sort();
 
 /**
+ * De una lista de fechas, cuáles tienen al menos un horario libre. Evita que
+ * el selector de día muestre fechas cerradas o ya llenas: eso obliga a la
+ * clienta a "probar con otro día" a ciegas, que es justo lo que se quiere evitar.
+ */
+export async function availableDates(
+  business: Business, staffId: string, serviceId: string, dates: string[]
+): Promise<string[]> {
+  const staffIds = staffId === ANY_STAFF ? await eligibleStaffIds(business, serviceId) : null;
+  const open: string[] = [];
+  for (const date of dates) {
+    const slots = staffIds
+      ? unionSlots(await slotsByStaff(business, serviceId, date, staffIds))
+      : await availableSlots(business, staffId, serviceId, date);
+    if (slots.length > 0) open.push(date);
+  }
+  return open;
+}
+
+/**
  * Quién puede tomar ese slot, del menos ocupado ese día al más ocupado.
  * Sin esto, "no tengo preferencia" le carga todas las citas al primero de la
  * lista alfabética y el otro especialista se queda sin trabajo.

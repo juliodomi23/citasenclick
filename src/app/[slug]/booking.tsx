@@ -54,6 +54,7 @@ export function Booking({ slug, timezone, bookingWindowDays, whatsappPhone, serv
   const [date, setDate] = useState<string | null>(null);
   const [slot, setSlot] = useState<string | null>(null);
   const [slots, setSlots] = useState<string[] | null>(null);
+  const [openDates, setOpenDates] = useState<string[] | null>(null);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [notes, setNotes] = useState('');
@@ -85,6 +86,22 @@ export function Booking({ slug, timezone, bookingWindowDays, whatsappPhone, serv
       .then((d) => setSlots(d.slots ?? []))
       .catch(() => setSlots([]));
   }, [slug, service, person, date]);
+
+  // Qué días de los próximos mostrar: solo los que tienen al menos un hueco
+  // libre. Sin esto la clienta ve fechas cerradas o ya llenas y tiene que
+  // "probar con otro día" a ciegas.
+  useEffect(() => {
+    if (!service || !person) return;
+    setOpenDates(null);
+    const params = new URLSearchParams({
+      slug, service: service.id, staff: person.id, dates: dates.join(','),
+    });
+    fetch(`/api/availability/days?${params}`)
+      .then((r) => r.json())
+      .then((d) => setOpenDates(d.dates ?? []))
+      .catch(() => setOpenDates([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug, service, person]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -244,20 +261,37 @@ export function Booking({ slug, timezone, bookingWindowDays, whatsappPhone, serv
       )}
       {step === 3 && (
         <Step n={3} title="Elige el día">
-          {/* Rejilla que fluye hacia abajo, no carrusel horizontal: en celular
-              lo que se sale de la pantalla no se descubre. */}
-          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-            {dates.map((d) => (
-              <button
-                key={d}
-                type="button"
-                onClick={() => setDate(d)}
-                className="min-h-11 cursor-pointer whitespace-nowrap rounded-xl border border-border-control bg-surface px-2 text-sm text-ink shadow-soft transition-colors duration-200 first-letter:uppercase hover:border-accent-400 hover:bg-blush-50"
-              >
-                {fmtDate(d, timezone)}
-              </button>
-            ))}
-          </div>
+          {openDates === null && (
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="h-11 animate-pulse rounded-xl bg-blush-100" />
+              ))}
+            </div>
+          )}
+
+          {openDates?.length === 0 && (
+            <Rescate
+              texto="No hay días disponibles por ahora. Prueba de nuevo más tarde."
+              whatsappPhone={whatsappPhone}
+            />
+          )}
+
+          {openDates && openDates.length > 0 && (
+            // Rejilla que fluye hacia abajo, no carrusel horizontal: en celular
+            // lo que se sale de la pantalla no se descubre.
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+              {dates.filter((d) => openDates.includes(d)).map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => setDate(d)}
+                  className="min-h-11 cursor-pointer whitespace-nowrap rounded-xl border border-border-control bg-surface px-2 text-sm text-ink shadow-soft transition-colors duration-200 first-letter:uppercase hover:border-accent-400 hover:bg-blush-50"
+                >
+                  {fmtDate(d, timezone)}
+                </button>
+              ))}
+            </div>
+          )}
         </Step>
       )}
 
