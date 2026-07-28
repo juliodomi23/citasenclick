@@ -1,10 +1,10 @@
 import Link from 'next/link';
 import { sql } from '@/lib/db';
 import { TIMEZONES } from '@/lib/panel';
-import { createBusiness, deleteBusiness } from './actions';
+import { createBusiness } from './actions';
 import { logoutSuperadmin } from './entrar/actions';
 import { Card, Field, Input, Select, Button, Empty } from '@/components/panel-ui';
-import { Trash2 } from '@/components/icons';
+import { DeleteBusinessForm } from './delete-button';
 
 type Row = {
   slug: string;
@@ -131,23 +131,7 @@ export default async function Superadmin(props: PageProps<'/superadmin'>) {
                   >
                     /{b.slug}
                   </a>
-                  <form
-                    action={deleteBusiness}
-                    onSubmit={(e) => {
-                      if (!confirm(`¿Estás seguro de que quieres eliminar "${b.name}" completamente? Se borrará todo (usuarios, citas, servicios, etc.)`)) {
-                        e.preventDefault();
-                      }
-                    }}
-                  >
-                    <input type="hidden" name="slug" value={b.slug} />
-                    <button
-                      type="submit"
-                      className="inline-flex min-h-9 items-center gap-2 rounded-lg bg-red-50 px-2 text-xs font-medium text-red-700 transition-colors duration-200 hover:bg-red-100"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      Eliminar
-                    </button>
-                  </form>
+                  <DeleteBusinessForm slug={b.slug} name={b.name} />
                 </div>
               </div>
             </li>
