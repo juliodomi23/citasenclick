@@ -37,6 +37,12 @@ services:
       # Se arma sola a partir de POSTGRES_PASSWORD: nadie tiene que copiar/pegar
       # una cadena de conexión a mano (así empezó todo este problema con Neon).
       DATABASE_URL: postgresql://citas:${POSTGRES_PASSWORD:?falta POSTGRES_PASSWORD en .env}@postgres:5432/citas
+      # Docker mete un HOSTNAME=<id del contenedor> automático, y el
+      # server.js standalone de Next lo usa para bindear en vez de escuchar
+      # en todas las interfaces. Con dos redes (default + easypanel) eso
+      # hacía que a veces quedara sordo en la red por la que entra Traefik
+      # -> 502 Bad Gateway intermitente. Forzar 0.0.0.0 lo evita siempre.
+      HOSTNAME: "0.0.0.0"
     env_file:
       - .env
 
