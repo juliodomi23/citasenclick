@@ -1,11 +1,44 @@
 services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: citas
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?falta POSTGRES_PASSWORD en .env}
+      POSTGRES_DB: citas
+    volumes:
+      # Datos persistentes: sin esto, cada redeploy borra todas las citas.
+      - pgdata:/var/lib/postgresql/data
+      # El esquema se aplica solo la PRIMERA vez que el volumen está vacío
+      # (comportamiento estándar de la imagen oficial) — no en cada arranque.
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+    # Sin "ports": solo accesible dentro de la red interna del compose, ni
+    # siquiera EasyPanel lo expone — mismo criterio que el puerto de la app.
+    expose:
+      - "5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U citas -d citas"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   citas-app:
     build: .
     restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
     # "expose", no "ports": el puerto solo es visible dentro de la red interna
     # de Docker/EasyPanel. Nadie entra por http://IP:3000 saltándose el proxy
     # con HTTPS — mismo patrón que el resto de los productos internos.
     expose:
       - "3000"
+    environment:
+      # Se arma sola a partir de POSTGRES_PASSWORD: nadie tiene que copiar/pegar
+      # una cadena de conexión a mano (así empezó todo este problema con Neon).
+      DATABASE_URL: postgresql://citas:${POSTGRES_PASSWORD:?falta POSTGRES_PASSWORD en .env}@postgres:5432/citas
     env_file:
       - .env
+
+volumes:
+  pgdata:

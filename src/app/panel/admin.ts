@@ -163,9 +163,9 @@ export async function copyDayToAll(form: FormData) {
   const weekday = int(form, 'weekday', -1);
   if (!isUuid(staffId) || weekday < 0 || weekday > 6) return;
 
-  const owned = (await sql`
+  const owned = await sql`
     select 1 from staff where id = ${staffId} and business_id = ${business.id}
-  `) as unknown[];
+  `;
   if (owned.length === 0) return;
 
   await sql`delete from schedule_rules where staff_id = ${staffId} and weekday <> ${weekday}`;

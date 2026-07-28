@@ -31,7 +31,7 @@ export async function createBusiness(form: FormData) {
   const bizPhone = rawBizPhone ? normalizePhoneMX(rawBizPhone) : null;
   if (rawBizPhone && !bizPhone) redirect('/superadmin?error=telefono-negocio');
 
-  const existing = (await sql`select 1 from businesses where slug = ${slug}`) as unknown[];
+  const existing = await sql`select 1 from businesses where slug = ${slug}`;
   if (existing.length > 0) redirect('/superadmin?error=slug-tomado');
 
   const rows = (await sql`
