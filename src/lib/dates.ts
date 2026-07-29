@@ -27,3 +27,15 @@ export const startOfWeek = (date: string) => {
 };
 
 export const isDate = (v: string) => /^\d{4}-\d{2}-\d{2}$/.test(v);
+
+/** El día 1 del mes que contiene `date`. */
+export const startOfMonth = (date: string) => `${date.slice(0, 7)}-01`;
+
+/** Día 1 del mes, `n` meses antes o después del mes de `date`. */
+export const addMonths = (date: string, n: number) => {
+  const [y, m] = date.slice(0, 7).split('-').map(Number);
+  const total = y * 12 + (m - 1) + n;
+  const ny = Math.floor(total / 12);
+  const nm = (total % 12) + 1;
+  return `${ny}-${String(nm).padStart(2, '0')}-01`;
+};

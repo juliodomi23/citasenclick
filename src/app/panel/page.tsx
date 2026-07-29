@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { sql } from '@/lib/db';
 import { requireBusiness } from '@/lib/auth';
-import { todayIn, addDays, startOfWeek, civilDate, isDate } from '@/lib/dates';
+import { todayIn, addDays, addMonths, startOfWeek, startOfMonth, civilDate, isDate } from '@/lib/dates';
 import { setStatus } from './actions';
 import { ChevronLeft, ChevronRight, MessageCircle, AlertTriangle, Calendar } from '@/components/icons';
 
@@ -31,13 +31,28 @@ export default async function Panel(props: PageProps<'/panel'>) {
   const q = await props.searchParams;
   const biz = await requireBusiness();
 
-  const week = q.view === 'week';
+  const view = q.view === 'week' ? 'week' : q.view === 'month' ? 'month' : 'day';
+  const week = view === 'week';
+  const month = view === 'month';
   const date = typeof q.date === 'string' && isDate(q.date) ? q.date : todayIn(biz.timezone);
 
-  // Una sola query para ambas vistas: cambia el rango, no el código.
-  const from = week ? startOfWeek(date) : date;
-  const days = Array.from({ length: week ? 7 : 1 }, (_, i) => addDays(from, i));
-  const to = addDays(from, days.length);
+  // Una sola query para las tres vistas: cambia el rango, no el código.
+  let from: string, to: string, days: string[];
+  if (month) {
+    // La rejilla del mes empieza en el lunes de la semana del día 1 y termina
+    // en el domingo de la semana del último día: siempre semanas completas.
+    const monthStart = startOfMonth(date);
+    const monthEnd = addDays(addMonths(monthStart, 1), -1);
+    from = startOfWeek(monthStart);
+    const gridEnd = addDays(startOfWeek(monthEnd), 6);
+    days = [];
+    for (let d = from; d <= gridEnd; d = addDays(d, 1)) days.push(d);
+    to = addDays(gridEnd, 1);
+  } else {
+    from = week ? startOfWeek(date) : date;
+    days = Array.from({ length: week ? 7 : 1 }, (_, i) => addDays(from, i));
+    to = addDays(from, days.length);
+  }
 
   const appts = (await sql`
     select a.id, a.starts_at, a.ends_at, a.status, a.customer_name, a.customer_phone,
@@ -57,37 +72,45 @@ export default async function Panel(props: PageProps<'/panel'>) {
 
   const today = todayIn(biz.timezone);
   const activas = appts.filter((a) => a.status === 'confirmed').length;
-  const nav = { date, view: week ? 'week' : 'day' };
+  const nav = { date, view };
 
-  const header = week
-    ? `${fmtDay(from, biz.timezone)} — ${fmtDay(addDays(from, 6), biz.timezone)}`
-    : new Intl.DateTimeFormat('es-MX', {
-        timeZone: biz.timezone, weekday: 'long', day: 'numeric', month: 'long',
-      }).format(new Date(`${date}T12:00:00Z`));
+  const header = month
+    ? new Intl.DateTimeFormat('es-MX', { timeZone: biz.timezone, month: 'long', year: 'numeric' })
+        .format(new Date(`${date.slice(0, 7)}-15T12:00:00Z`))
+    : week
+      ? `${fmtDay(from, biz.timezone)} — ${fmtDay(addDays(from, 6), biz.timezone)}`
+      : new Intl.DateTimeFormat('es-MX', {
+          timeZone: biz.timezone, weekday: 'long', day: 'numeric', month: 'long',
+        }).format(new Date(`${date}T12:00:00Z`));
+
+  const prevTo = month ? addMonths(date, -1) : addDays(date, week ? -7 : -1);
+  const nextTo = month ? addMonths(date, 1) : addDays(date, week ? 7 : 1);
+  const enRangoActual = month ? startOfMonth(date) === startOfMonth(today) : days.includes(today);
 
   return (
     <main>
       <div className="mt-5 inline-flex rounded-xl border border-blush-200 bg-surface p-1 shadow-soft">
-        <ViewTab date={date} view="day" active={!week} label="Día" />
+        <ViewTab date={date} view="day" active={!week && !month} label="Día" />
         <ViewTab date={date} view="week" active={week} label="Semana" />
+        <ViewTab date={date} view="month" active={month} label="Mes" />
       </div>
 
       <nav className="mt-4 flex items-center justify-between gap-3">
-        <StepLink {...nav} to={addDays(date, week ? -7 : -1)} dir="prev"
-          label={week ? 'Semana anterior' : 'Día anterior'} />
+        <StepLink {...nav} to={prevTo} dir="prev"
+          label={month ? 'Mes anterior' : week ? 'Semana anterior' : 'Día anterior'} />
         <div className="min-w-0 text-center">
           <p className="truncate font-display text-lg text-ink first-letter:uppercase">{header}</p>
-          {!days.includes(today) && (
+          {!enRangoActual && (
             <Link
               href={`/panel?view=${nav.view}`}
               className="inline-flex min-h-11 cursor-pointer items-center text-xs text-accent-700 underline underline-offset-2"
             >
-              {week ? 'Ir a esta semana' : 'Ir a hoy'}
+              {month ? 'Ir a este mes' : week ? 'Ir a esta semana' : 'Ir a hoy'}
             </Link>
           )}
         </div>
-        <StepLink {...nav} to={addDays(date, week ? 7 : 1)} dir="next"
-          label={week ? 'Semana siguiente' : 'Día siguiente'} />
+        <StepLink {...nav} to={nextTo} dir="next"
+          label={month ? 'Mes siguiente' : week ? 'Semana siguiente' : 'Día siguiente'} />
       </nav>
 
       {q.error === 'ocupado' && (
@@ -99,43 +122,92 @@ export default async function Panel(props: PageProps<'/panel'>) {
 
       <p className="mt-6 text-sm text-ink-muted">
         {activas === 0
-          ? `Sin citas activas est${week ? 'a semana' : 'e día'}.`
+          ? `Sin citas activas ${month ? 'este mes' : week ? 'esta semana' : 'este día'}.`
           : `${activas} cita${activas === 1 ? '' : 's'} activa${activas === 1 ? '' : 's'}`}
       </p>
 
-      <div className="mt-3 space-y-7">
+      {month ? (
+        <MonthGrid days={days} byDay={byDay} today={today} monthOf={date} />
+      ) : (
+        <div className="mt-3 space-y-7">
+          {days.map((d) => {
+            const list = byDay.get(d) ?? [];
+            if (!week && list.length === 0) {
+              return <Empty key={d} />;
+            }
+            return (
+              <section key={d}>
+                {week && (
+                  <h2 className="mb-2 flex items-baseline justify-between border-b border-blush-200 pb-1.5">
+                    <span className={`font-display text-base first-letter:uppercase ${
+                      d === today ? 'text-accent-700' : 'text-ink-soft'
+                    }`}>
+                      {fmtDay(d, biz.timezone)}{d === today && ' · hoy'}
+                    </span>
+                    <span className="text-sm text-ink-muted">
+                      {list.filter((a) => a.status === 'confirmed').length || '—'}
+                    </span>
+                  </h2>
+                )}
+                {week && list.length === 0 && (
+                  <p className="py-1 text-sm text-ink-muted">Sin citas.</p>
+                )}
+                <ul className="space-y-3">
+                  {list.map((a) => (
+                    <ApptCard key={a.id} appt={a} tz={biz.timezone} {...nav} />
+                  ))}
+                </ul>
+              </section>
+            );
+          })}
+        </div>
+      )}
+    </main>
+  );
+}
+
+/** Cuadrícula del mes: cada celda es un link al día, con el número de citas
+    confirmadas si hay alguna. Los días de otro mes (para completar semanas)
+    se ven apagados pero siguen siendo clicables. */
+function MonthGrid({
+  days, byDay, today, monthOf,
+}: { days: string[]; byDay: Map<string, Appt[]>; today: string; monthOf: string }) {
+  const monthPrefix = monthOf.slice(0, 7);
+  return (
+    <div className="mt-3">
+      <div className="grid grid-cols-7 gap-1 text-center text-xs text-ink-muted">
+        {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map((l) => (
+          <span key={l} className="py-1">{l}</span>
+        ))}
+      </div>
+      <div className="grid grid-cols-7 gap-1">
         {days.map((d) => {
-          const list = byDay.get(d) ?? [];
-          if (!week && list.length === 0) {
-            return <Empty key={d} />;
-          }
+          const confirmadas = (byDay.get(d) ?? []).filter((a) => a.status === 'confirmed').length;
+          const inMonth = d.slice(0, 7) === monthPrefix;
+          const isToday = d === today;
           return (
-            <section key={d}>
-              {week && (
-                <h2 className="mb-2 flex items-baseline justify-between border-b border-blush-200 pb-1.5">
-                  <span className={`font-display text-base first-letter:uppercase ${
-                    d === today ? 'text-accent-700' : 'text-ink-soft'
-                  }`}>
-                    {fmtDay(d, biz.timezone)}{d === today && ' · hoy'}
-                  </span>
-                  <span className="text-sm text-ink-muted">
-                    {list.filter((a) => a.status === 'confirmed').length || '—'}
-                  </span>
-                </h2>
+            <Link
+              key={d}
+              href={`/panel?date=${d}&view=day`}
+              className={`flex min-h-16 flex-col items-center gap-1 rounded-xl border p-1.5 text-sm transition-colors duration-200 ${
+                inMonth
+                  ? 'border-blush-200 bg-surface hover:border-accent-400 hover:bg-blush-50'
+                  : 'border-transparent text-ink-muted/50'
+              } ${isToday ? 'ring-2 ring-accent-600' : ''}`}
+            >
+              <span className={`tabular-nums ${isToday ? 'font-semibold text-accent-700' : ''}`}>
+                {Number(d.slice(8, 10))}
+              </span>
+              {confirmadas > 0 && (
+                <span className="rounded-full bg-blush-100 px-1.5 text-xs text-accent-700">
+                  {confirmadas}
+                </span>
               )}
-              {week && list.length === 0 && (
-                <p className="py-1 text-sm text-ink-muted">Sin citas.</p>
-              )}
-              <ul className="space-y-3">
-                {list.map((a) => (
-                  <ApptCard key={a.id} appt={a} tz={biz.timezone} {...nav} />
-                ))}
-              </ul>
-            </section>
+            </Link>
           );
         })}
       </div>
-    </main>
+    </div>
   );
 }
 
