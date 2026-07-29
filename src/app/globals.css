@@ -65,7 +65,7 @@
   --shadow-soft: 0 1px 2px rgb(131 24 67 / 0.04), 0 2px 8px rgb(131 24 67 / 0.06);
   --shadow-soft-lg: 0 2px 4px rgb(131 24 67 / 0.05), 0 8px 24px rgb(131 24 67 / 0.09);
 
-  --font-display: var(--font-playfair), Georgia, serif;
+  --font-display: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
   --font-sans: var(--font-inter), system-ui, sans-serif;
 }
 
@@ -209,6 +209,16 @@
   --color-ink-muted: #94a3b8;
 }
 
+/*
+  Ningún h1/h2 del proyecto trae una utilidad de peso junto a font-display
+  (se apoyaban en que Playfair ya se ve "con carácter" en 400). Jakarta Sans
+  en 400 se ve plano ahí, así que el peso semibold vive aquí una sola vez en
+  vez de tocar los ~20 usos de font-display uno por uno.
+*/
+.font-display {
+  font-weight: 600;
+}
+
 body {
   background: var(--color-cream);
   color: var(--color-ink);
@@ -225,8 +235,14 @@ body {
   correcto. `min-h-full` para que cubra la pantalla en páginas cortas.
 */
 .theme-halo {
+  /*
+    Antes: un halo de 60rem al 100% de opacidad, tan grande y saturado que
+    la app entera se leía como landing de spa en vez de herramienta de
+    trabajo. Se redujo tamaño e intensidad: sigue marcando la marca del
+    negocio, pero como acento en la esquina, no como fondo dominante.
+  */
   background:
-    radial-gradient(60rem 32rem at 50% -8rem, var(--color-blush-100), transparent),
+    radial-gradient(38rem 20rem at 50% -10rem, color-mix(in srgb, var(--color-blush-100) 55%, transparent), transparent),
     var(--color-cream);
 }
 

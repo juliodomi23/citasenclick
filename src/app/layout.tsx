@@ -1,12 +1,18 @@
 import type { Metadata } from "next";
-import { Playfair_Display, Inter } from "next/font/google";
+import { Plus_Jakarta_Sans, Inter } from "next/font/google";
 import "./globals.css";
 
 // Autoalojadas por next/font: sin llamadas a Google desde el navegador del
 // cliente y sin salto de fuente al cargar. Importa en un VPS propio.
-const playfair = Playfair_Display({
-  variable: "--font-playfair",
+//
+// Playfair Display (serif decorativo) se cambió por Plus Jakarta Sans: un
+// serif de invitación de boda lee como papelería, no como una herramienta
+// que se usa 50 veces al día en el mostrador. Jakarta Sans es la tipografía
+// que domina en dashboards SaaS profesionales (Linear, Notion, Vercel).
+const display = Plus_Jakarta_Sans({
+  variable: "--font-jakarta",
   subsets: ["latin"],
+  weight: ["600", "700"],
   display: "swap",
 });
 
@@ -29,7 +35,7 @@ export default function RootLayout({
   return (
     <html
       lang="es-MX"
-      className={`${playfair.variable} ${inter.variable} h-full antialiased`}
+      className={`${display.variable} ${inter.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>
