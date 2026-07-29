@@ -60,7 +60,9 @@ create table staff (
   business_id uuid not null references businesses on delete cascade,
   user_id uuid references users on delete set null,
   name text not null,
-  active boolean not null default true
+  active boolean not null default true,
+  commission_pct numeric(5, 2) not null default 0,
+  constraint staff_commission_sane check (commission_pct >= 0 and commission_pct <= 100)
 );
 
 create table services (
@@ -167,6 +169,9 @@ create table sales (
   qty int not null default 1,
   payment_method text not null check (payment_method in ('efectivo', 'tarjeta', 'transferencia')),
   total_cents int not null check (total_cents >= 0),
+  -- Congelada al momento del cobro (como "description"): si luego cambias el
+  -- % de un especialista, el corte de un día viejo no se mueve.
+  commission_cents int not null default 0,
   created_at timestamptz not null default now(),
   constraint sales_qty_positive check (qty > 0)
 );

@@ -3,7 +3,9 @@ import { requireBusiness } from '@/lib/auth';
 import { saveStaff, toggleStaff, setStaffServices } from '../admin';
 import { Card, Field, Input, Button, Empty, Guardado } from '@/components/panel-ui';
 
-type Staff = { id: string; name: string; active: boolean; service_ids: string[] };
+type Staff = {
+  id: string; name: string; active: boolean; service_ids: string[]; commission_pct: string;
+};
 type Service = { id: string; name: string; active: boolean };
 
 export default async function Equipo(props: PageProps<'/panel/equipo'>) {
@@ -15,12 +17,12 @@ export default async function Equipo(props: PageProps<'/panel/equipo'>) {
   `) as Service[];
 
   const staff = (await sql`
-    select st.id, st.name, st.active,
+    select st.id, st.name, st.active, st.commission_pct,
            coalesce(array_agg(ss.service_id::text) filter (where ss.service_id is not null), '{}') as service_ids
       from staff st
       left join staff_services ss on ss.staff_id = st.id
      where st.business_id = ${business.id}
-     group by st.id, st.name, st.active
+     group by st.id, st.name, st.active, st.commission_pct
      order by st.active desc, st.name
   `) as Staff[];
 
@@ -35,9 +37,15 @@ export default async function Equipo(props: PageProps<'/panel/equipo'>) {
         <Card key={p.id}>
           <form action={saveStaff} className="flex flex-wrap items-end gap-3">
             <input type="hidden" name="id" value={p.id} />
-            <div className="min-w-48 flex-1">
+            <div className="min-w-40 flex-1">
               <Field label="Nombre">
                 <Input name="name" defaultValue={p.name} required maxLength={80} />
+              </Field>
+            </div>
+            <div className="w-24">
+              <Field label="Comisión" hint="%">
+                <Input name="commission_pct" type="number" inputMode="decimal"
+                  min={0} max={100} step="1" defaultValue={Number(p.commission_pct)} />
               </Field>
             </div>
             <Button type="submit" tone="ghost" aria-label={`Guardar el nombre de ${p.name}`}>Guardar</Button>

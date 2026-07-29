@@ -78,13 +78,21 @@ export async function saveStaff(form: FormData) {
   const { business } = await guard(form);
   const id = str(form, 'id');
   const name = str(form, 'name');
+  const pct = Number.parseFloat(str(form, 'commission_pct') || '0');
   if (!name) return;
+  const commissionPct = Math.min(100, Math.max(0, Number.isFinite(pct) ? pct : 0));
 
   if (id) {
     if (!isUuid(id)) return;
-    await sql`update staff set name = ${name} where id = ${id} and business_id = ${business.id}`;
+    await sql`
+      update staff set name = ${name}, commission_pct = ${commissionPct}
+       where id = ${id} and business_id = ${business.id}
+    `;
   } else {
-    await sql`insert into staff (business_id, name) values (${business.id}, ${name})`;
+    await sql`
+      insert into staff (business_id, name, commission_pct)
+      values (${business.id}, ${name}, ${commissionPct})
+    `;
   }
   refresh('equipo');
 }
@@ -304,19 +312,23 @@ export async function completeAppointment(form: FormData) {
   const amountCents = Math.round(Math.max(0, Number.isFinite(pesos) ? pesos : 0) * 100);
 
   const rows = (await sql`
-    select a.staff_id, s.name as service_name
+    select a.staff_id, s.name as service_name, st.commission_pct
       from appointments a
       join services s on s.id = a.service_id
+      join staff st on st.id = a.staff_id
      where a.id = ${id} and a.business_id = ${business.id} and a.status = 'confirmed'
-  `) as { staff_id: string; service_name: string }[];
+  `) as { staff_id: string; service_name: string; commission_pct: string }[];
   const appt = rows[0];
   if (!appt) return;
+  const commissionCents = Math.round(amountCents * (Number(appt.commission_pct) / 100));
 
   await begin(async (tx) => {
     await tx`update appointments set status = 'completed' where id = ${id}`;
     await tx`
-      insert into sales (business_id, staff_id, appointment_id, description, payment_method, total_cents)
-      values (${business.id}, ${appt.staff_id}, ${id}, ${appt.service_name}, ${method}, ${amountCents})
+      insert into sales
+        (business_id, staff_id, appointment_id, description, payment_method, total_cents, commission_cents)
+      values
+        (${business.id}, ${appt.staff_id}, ${id}, ${appt.service_name}, ${method}, ${amountCents}, ${commissionCents})
     `;
   });
 

@@ -8,7 +8,7 @@ import { ChevronLeft, ChevronRight } from '@/components/icons';
 
 type Venta = {
   id: string; created_at: string; description: string; qty: number;
-  payment_method: string; total_cents: number; staff_name: string | null;
+  payment_method: string; total_cents: number; commission_cents: number; staff_name: string | null;
 };
 
 type ProductOption = { id: string; name: string; price_cents: number };
@@ -27,7 +27,7 @@ export default async function Caja(props: PageProps<'/panel/caja'>) {
 
   const ventas = (await sql`
     select s.id, s.created_at, s.description, s.qty, s.payment_method, s.total_cents,
-           st.name as staff_name
+           s.commission_cents, st.name as staff_name
       from sales s
       left join staff st on st.id = s.staff_id
      where s.business_id = ${business.id}
@@ -46,11 +46,15 @@ export default async function Caja(props: PageProps<'/panel/caja'>) {
   const porMetodo = new Map<string, number>();
   for (const v of ventas) porMetodo.set(v.payment_method, (porMetodo.get(v.payment_method) ?? 0) + v.total_cents);
 
-  const porBarbero = new Map<string, number>();
+  const porBarbero = new Map<string, { total: number; comision: number }>();
   for (const v of ventas) {
     const key = v.staff_name ?? 'Venta de mostrador';
-    porBarbero.set(key, (porBarbero.get(key) ?? 0) + v.total_cents);
+    const acc = porBarbero.get(key) ?? { total: 0, comision: 0 };
+    acc.total += v.total_cents;
+    acc.comision += v.commission_cents;
+    porBarbero.set(key, acc);
   }
+  const totalComisiones = ventas.reduce((n, v) => n + v.commission_cents, 0);
 
   const header = new Intl.DateTimeFormat('es-MX', {
     timeZone: business.timezone, weekday: 'long', day: 'numeric', month: 'long',
@@ -115,12 +119,22 @@ export default async function Caja(props: PageProps<'/panel/caja'>) {
           </Card>
 
           {porBarbero.size > 0 && (
-            <Card title="Por especialista">
-              <ul className="space-y-1 text-sm text-ink-soft">
-                {[...porBarbero].map(([n, c]) => (
+            <Card
+              title="Por especialista"
+              hint={totalComisiones > 0 ? `Comisión total del día: ${money(totalComisiones)}` : undefined}
+            >
+              <ul className="space-y-2 text-sm text-ink-soft">
+                {[...porBarbero].map(([n, v]) => (
                   <li key={n} className="flex justify-between">
                     <span>{n}</span>
-                    <span className="tabular-nums">{money(c)}</span>
+                    <span className="text-right">
+                      <span className="tabular-nums text-ink">{money(v.total)}</span>
+                      {v.comision > 0 && (
+                        <span className="ml-2 tabular-nums text-xs text-ink-muted">
+                          (comisión {money(v.comision)})
+                        </span>
+                      )}
+                    </span>
                   </li>
                 ))}
               </ul>
