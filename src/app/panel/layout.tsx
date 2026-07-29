@@ -12,28 +12,36 @@ export default async function PanelLayout({ children }: { children: React.ReactN
   const { business } = session;
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-4 pb-16 pt-8">
-      <header className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <h1 className="font-display text-2xl text-ink">{business.name}</h1>
-        <div className="flex items-center gap-4 text-sm">
-          <ThemeToggle />
-          <Link
-            href={`/${business.slug}`}
-            className="inline-flex min-h-11 cursor-pointer items-center text-accent-700 underline decoration-accent-200 underline-offset-2 transition-colors duration-200 hover:text-accent-600"
-          >
-            Ver página pública
-          </Link>
-          <form action={logout}>
-            <button className="min-h-11 cursor-pointer text-ink-muted transition-colors duration-200 hover:text-ink">
-              Salir
-            </button>
-          </form>
-        </div>
-      </header>
+    <div data-theme={business.theme} className="theme-halo min-h-full">
+      <div className="mx-auto w-full max-w-2xl px-4 pb-16 pt-8">
+        <header className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <div className="flex items-center gap-3">
+            {business.logo_url && (
+              // eslint-disable-next-line @next/next/no-img-element -- URL externa arbitraria del cliente, sin dominio fijo que darle a next/image.
+              <img src={business.logo_url} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
+            )}
+            <h1 className="font-display text-2xl text-ink">{business.name}</h1>
+          </div>
+          <div className="flex items-center gap-4 text-sm">
+            <ThemeToggle />
+            <Link
+              href={`/${business.slug}`}
+              className="inline-flex min-h-11 cursor-pointer items-center text-accent-700 underline decoration-accent-200 underline-offset-2 transition-colors duration-200 hover:text-accent-600"
+            >
+              Ver página pública
+            </Link>
+            <form action={logout}>
+              <button className="min-h-11 cursor-pointer text-ink-muted transition-colors duration-200 hover:text-ink">
+                Salir
+              </button>
+            </form>
+          </div>
+        </header>
 
-      <PanelNav />
+        <PanelNav />
 
-      {children}
+        {children}
+      </div>
     </div>
   );
 }

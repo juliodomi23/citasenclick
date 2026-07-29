@@ -24,9 +24,17 @@ export default async function Page(props: PageProps<'/[slug]'>) {
   `) as Staff[];
 
   return (
-    <main className="mx-auto w-full max-w-md px-4 pb-16 pt-10">
+    <main data-theme={business.theme} className="theme-halo min-h-full mx-auto w-full max-w-md px-4 pb-16 pt-10">
       <header className="text-center">
-        <h1 className="font-display text-3xl leading-tight text-ink">{business.name}</h1>
+        {business.logo_url && (
+          // eslint-disable-next-line @next/next/no-img-element -- URL externa arbitraria del cliente, sin dominio fijo que darle a next/image.
+          <img
+            src={business.logo_url}
+            alt=""
+            className="mx-auto h-16 w-16 rounded-full object-cover shadow-soft"
+          />
+        )}
+        <h1 className="mt-3 font-display text-3xl leading-tight text-ink">{business.name}</h1>
         <p className="mt-2 text-sm text-ink-muted">Agenda tu cita en menos de un minuto</p>
       </header>
       <Booking

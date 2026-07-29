@@ -13,11 +13,15 @@ create table businesses (
   booking_window_days int not null default 30,
   min_notice_minutes int not null default 120,
   slot_granularity_minutes int not null default 15,
+  -- Marca por cliente: la fija el superadmin, no el dueño del negocio.
+  logo_url text,
+  theme text not null default 'rosa',
   -- Los formularios del panel ya validan, pero la restricción vive aquí: es lo
   -- único que no se puede evadir. Un slot_granularity de 0 rompe el generador.
   constraint businesses_window_sane check (booking_window_days between 1 and 180),
   constraint businesses_notice_sane check (min_notice_minutes between 0 and 10080),
   constraint businesses_granularity_sane check (slot_granularity_minutes between 5 and 60),
+  constraint businesses_theme_valido check (theme in ('rosa', 'azul', 'verde', 'ambar', 'grafito')),
   created_at timestamptz default now()
 );
 

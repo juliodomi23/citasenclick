@@ -87,7 +87,8 @@ export async function currentSession(): Promise<SessionUser | null> {
   const rows = (await sql`
     select u.id as user_id, u.role,
            b.id, b.slug, b.name, b.timezone, b.whatsapp_phone,
-           b.booking_window_days, b.min_notice_minutes, b.slot_granularity_minutes
+           b.booking_window_days, b.min_notice_minutes, b.slot_granularity_minutes,
+           b.logo_url, b.theme
       from sessions s
       join users u on u.id = s.user_id
       join businesses b on b.id = u.business_id
@@ -105,6 +106,7 @@ export async function currentSession(): Promise<SessionUser | null> {
       whatsapp_phone: r.whatsapp_phone, booking_window_days: r.booking_window_days,
       min_notice_minutes: r.min_notice_minutes,
       slot_granularity_minutes: r.slot_granularity_minutes,
+      logo_url: r.logo_url, theme: r.theme,
     },
   };
 }

@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { sql } from '@/lib/db';
 import { isValidSlug, normalizePhoneMX } from '@/lib/validation';
-import { TIMEZONES } from '@/lib/panel';
+import { TIMEZONES, THEMES } from '@/lib/panel';
 
 const str = (form: FormData, key: string) => String(form.get(key) ?? '').trim();
 
@@ -19,11 +19,14 @@ export async function createBusiness(form: FormData) {
   const timezone = str(form, 'timezone') || 'America/Mexico_City';
   const rawBizPhone = str(form, 'whatsapp_phone');
   const rawOwnerPhone = str(form, 'owner_phone');
+  const logoUrl = str(form, 'logo_url');
+  const theme = str(form, 'theme') || 'rosa';
 
   if (!name || !isValidSlug(slug)) redirect('/superadmin?error=slug');
   if (!TIMEZONES.includes(timezone as (typeof TIMEZONES)[number])) {
     redirect('/superadmin?error=zona');
   }
+  if (!THEMES.includes(theme as (typeof THEMES)[number])) redirect('/superadmin?error=zona');
 
   const ownerPhone = normalizePhoneMX(rawOwnerPhone);
   if (!ownerPhone) redirect('/superadmin?error=telefono');
@@ -35,8 +38,8 @@ export async function createBusiness(form: FormData) {
   if (existing.length > 0) redirect('/superadmin?error=slug-tomado');
 
   const rows = (await sql`
-    insert into businesses (name, slug, timezone, whatsapp_phone)
-    values (${name}, ${slug}, ${timezone}, ${bizPhone})
+    insert into businesses (name, slug, timezone, whatsapp_phone, logo_url, theme)
+    values (${name}, ${slug}, ${timezone}, ${bizPhone}, ${logoUrl || null}, ${theme})
     returning id
   `) as { id: string }[];
 
@@ -68,4 +71,31 @@ export async function deleteBusiness(form: FormData) {
 
   revalidatePath('/superadmin');
   redirect(`/superadmin?deleted=${slug}`);
+}
+
+/**
+ * Marca de un negocio: nombre, logo y tema de color. Aparte de crear/borrar
+ * porque se edita muchas veces después del alta y no toca ni horarios ni
+ * teléfonos — solo lo que ve la clienta.
+ */
+export async function updateBranding(form: FormData) {
+  const slug = str(form, 'slug');
+  const name = str(form, 'name');
+  const logoUrl = str(form, 'logo_url');
+  const theme = str(form, 'theme');
+
+  if (!slug || !isValidSlug(slug)) redirect('/superadmin?error=slug');
+  if (!name) redirect('/superadmin?error=slug');
+  if (!THEMES.includes(theme as (typeof THEMES)[number])) redirect('/superadmin?error=zona');
+
+  await sql`
+    update businesses
+       set name = ${name}, logo_url = ${logoUrl || null}, theme = ${theme}
+     where slug = ${slug}
+  `;
+
+  revalidatePath('/superadmin');
+  revalidatePath('/panel');
+  revalidatePath('/[slug]', 'page');
+  redirect(`/superadmin?ok=${slug}`);
 }

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { sql } from '@/lib/db';
-import { TIMEZONES } from '@/lib/panel';
-import { createBusiness } from './actions';
+import { TIMEZONES, THEMES, THEME_LABEL, type Theme } from '@/lib/panel';
+import { createBusiness, updateBranding } from './actions';
 import { logoutSuperadmin } from './entrar/actions';
 import { Card, Field, Input, Select, Button, Empty } from '@/components/panel-ui';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -12,6 +12,8 @@ type Row = {
   name: string;
   timezone: string;
   created_at: string;
+  logo_url: string | null;
+  theme: Theme;
   owner_phone: string | null;
   servicios: number;
   citas: number;
@@ -30,7 +32,7 @@ export default async function Superadmin(props: PageProps<'/superadmin'>) {
   const q = await props.searchParams;
 
   const businesses = (await sql`
-    select b.slug, b.name, b.timezone, b.created_at,
+    select b.slug, b.name, b.timezone, b.created_at, b.logo_url, b.theme,
            (select phone from users where business_id = b.id and role = 'owner' limit 1) as owner_phone,
            (select count(*)::int from services where business_id = b.id and active) as servicios,
            (select count(*)::int from appointments where business_id = b.id) as citas
@@ -105,6 +107,18 @@ export default async function Superadmin(props: PageProps<'/superadmin'>) {
               <Input name="whatsapp_phone" type="tel" inputMode="numeric" placeholder="961 123 4567" />
             </Field>
 
+            <Field label="Logo" hint="URL de imagen, opcional — se puede poner después">
+              <Input name="logo_url" type="url" placeholder="https://..." />
+            </Field>
+
+            <Field label="Tema de color">
+              <Select name="theme" defaultValue="rosa">
+                {THEMES.map((t) => (
+                  <option key={t} value={t}>{THEME_LABEL[t]}</option>
+                ))}
+              </Select>
+            </Field>
+
             <Button type="submit">Crear negocio</Button>
           </form>
         </Card>
@@ -117,30 +131,55 @@ export default async function Superadmin(props: PageProps<'/superadmin'>) {
       {businesses.length === 0 ? (
         <Empty>Sin negocios todavía.</Empty>
       ) : (
-        <ul className="space-y-2">
+        <div className="space-y-3">
           {businesses.map((b) => (
-            <li key={b.slug} className="rounded-xl border border-blush-200 bg-surface p-4 shadow-soft">
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <div className="flex-1">
-                  <p className="font-medium text-ink">{b.name}</p>
-                  <p className="mt-1 text-sm text-ink-muted">
-                    {b.servicios} servicio{b.servicios === 1 ? '' : 's'} · {b.citas} cita{b.citas === 1 ? '' : 's'} ·{' '}
-                    {b.owner_phone ?? 'sin dueño registrado'}
-                  </p>
+            <div key={b.slug} data-theme={b.theme} className="rounded-xl border border-blush-200 bg-surface p-4 shadow-soft">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  {b.logo_url && (
+                    // eslint-disable-next-line @next/next/no-img-element -- URL externa arbitraria por negocio.
+                    <img src={b.logo_url} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
+                  )}
+                  <div>
+                    <p className="font-medium text-ink">{b.name}</p>
+                    <p className="mt-1 text-sm text-ink-muted">
+                      {b.servicios} servicio{b.servicios === 1 ? '' : 's'} · {b.citas} cita{b.citas === 1 ? '' : 's'} ·{' '}
+                      {b.owner_phone ?? 'sin dueño registrado'}
+                    </p>
+                  </div>
                 </div>
                 <div className="flex flex-col items-end gap-2">
-                  <a
-                    href={`${base}/${b.slug}`}
-                    className="text-sm text-accent-700 underline"
-                  >
+                  <a href={`${base}/${b.slug}`} className="text-sm text-accent-700 underline">
                     /{b.slug}
                   </a>
                   <DeleteBusinessForm slug={b.slug} name={b.name} />
                 </div>
               </div>
-            </li>
+
+              <form action={updateBranding} className="mt-4 space-y-3 border-t border-blush-100 pt-4">
+                <input type="hidden" name="slug" value={b.slug} />
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <Field label="Nombre">
+                    <Input name="name" defaultValue={b.name} required maxLength={80} />
+                  </Field>
+                  <Field label="Logo" hint="URL">
+                    <Input name="logo_url" type="url" defaultValue={b.logo_url ?? ''} placeholder="https://..." />
+                  </Field>
+                  <Field label="Tema">
+                    <Select name="theme" defaultValue={b.theme}>
+                      {THEMES.map((t) => (
+                        <option key={t} value={t}>{THEME_LABEL[t]}</option>
+                      ))}
+                    </Select>
+                  </Field>
+                </div>
+                <Button type="submit" tone="ghost" aria-label={`Guardar marca de ${b.name}`}>
+                  Guardar marca
+                </Button>
+              </form>
+            </div>
           ))}
-        </ul>
+        </div>
       )}
     </main>
   );

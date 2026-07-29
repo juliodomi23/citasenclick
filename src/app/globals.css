@@ -105,14 +105,129 @@
   --color-warning-text: #fcd34d;
 }
 
+/*
+  Marca por negocio: cada cliente elige uno de estos temas en superadmin
+  (nombre, logo y color, no un selector de color libre — así ninguna
+  combinación rompe el contraste). Solo se redefinen acento, superficies y
+  borde de controles; ink/success/danger/warning quedan igual en todos, son
+  neutros y ya funcionan con cualquier acento encima.
+
+  El atributo va en un div dentro de <body>, no en <html> junto con .dark:
+  por eso los overrides de oscuro usan el combinador ".dark [data-theme=...]"
+  (ancestro con .dark, no el mismo nodo) en vez de ".dark[data-theme=...]".
+*/
+[data-theme='azul'] {
+  --color-accent-200: #bfdbfe;
+  --color-accent-400: #60a5fa;
+  --color-accent-500: #3b82f6;
+  --color-accent-600: #2563eb;
+  --color-accent-700: #1d4ed8;
+  --color-border-control: #2563eb;
+  --color-blush-50: #eff6ff;
+  --color-blush-100: #dbeafe;
+  --color-blush-200: #bfdbfe;
+}
+.dark [data-theme='azul'] {
+  --color-blush-50: #0f1a2e;
+  --color-blush-100: #16233d;
+  --color-blush-200: #1e3a5f;
+  --color-border-control: #60a5fa;
+  --color-accent-700: #93c5fd;
+}
+
+[data-theme='verde'] {
+  --color-accent-200: #a7f3d0;
+  --color-accent-400: #34d399;
+  --color-accent-500: #10b981;
+  --color-accent-600: #059669;
+  --color-accent-700: #047857;
+  --color-border-control: #059669;
+  --color-blush-50: #ecfdf5;
+  --color-blush-100: #d1fae5;
+  --color-blush-200: #a7f3d0;
+}
+.dark [data-theme='verde'] {
+  --color-blush-50: #0a1f18;
+  --color-blush-100: #0f2b21;
+  --color-blush-200: #14532d;
+  --color-border-control: #34d399;
+  --color-accent-700: #6ee7b7;
+}
+
+[data-theme='ambar'] {
+  --color-accent-200: #fde68a;
+  --color-accent-400: #fbbf24;
+  --color-accent-500: #f59e0b;
+  --color-accent-600: #d97706;
+  --color-accent-700: #b45309;
+  --color-border-control: #d97706;
+  --color-blush-50: #fffbeb;
+  --color-blush-100: #fef3c7;
+  --color-blush-200: #fde68a;
+}
+.dark [data-theme='ambar'] {
+  --color-blush-50: #241a06;
+  --color-blush-100: #33240a;
+  --color-blush-200: #78350f;
+  --color-border-control: #fbbf24;
+  --color-accent-700: #fcd34d;
+}
+
+[data-theme='grafito'] {
+  --color-accent-200: #cbd5e1;
+  --color-accent-400: #94a3b8;
+  --color-accent-500: #64748b;
+  --color-accent-600: #475569;
+  --color-accent-700: #334155;
+  --color-border-control: #475569;
+  --color-blush-50: #f8fafc;
+  --color-blush-100: #f1f5f9;
+  --color-blush-200: #e2e8f0;
+}
+.dark [data-theme='grafito'] {
+  --color-blush-50: #0f172a;
+  --color-blush-100: #1e293b;
+  --color-blush-200: #334155;
+  --color-border-control: #94a3b8;
+  --color-accent-700: #cbd5e1;
+}
+
+/*
+  Texto neutro (slate) compartido por los cuatro temas no-rosa: con el ink
+  vino oscuro original, el título y los textos secundarios seguían rosas
+  encima de un acento azul/verde/ámbar/grafito y se veía descuadrado. El
+  rosa es el único tema que conserva su ink de marca (es el que ya existía).
+*/
+:is([data-theme='azul'], [data-theme='verde'], [data-theme='ambar'], [data-theme='grafito']) {
+  --color-ink: #0f172a;
+  --color-ink-soft: #334155;
+  --color-ink-muted: #475569;
+}
+:is(.dark [data-theme='azul'], .dark [data-theme='verde'], .dark [data-theme='ambar'], .dark [data-theme='grafito']) {
+  --color-ink: #f1f5f9;
+  --color-ink-soft: #cbd5e1;
+  --color-ink-muted: #94a3b8;
+}
+
 body {
-  background:
-    radial-gradient(60rem 32rem at 50% -8rem, var(--color-blush-100), transparent),
-    var(--color-cream);
+  background: var(--color-cream);
   color: var(--color-ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   transition: background-color 200ms ease, color 200ms ease;
+}
+
+/*
+  El halo rosado vivía en `body`, pero el tema de marca se aplica en un div
+  hijo (el negocio no se conoce en el layout raíz). Puesto en `body` el halo
+  se quedaba siempre rosa aunque el resto de la pantalla cambiara de color.
+  Esta clase va en el wrapper con `data-theme`, así el halo hereda el acento
+  correcto. `min-h-full` para que cubra la pantalla en páginas cortas.
+*/
+.theme-halo {
+  background:
+    radial-gradient(60rem 32rem at 50% -8rem, var(--color-blush-100), transparent),
+    var(--color-cream);
 }
 
 /*
