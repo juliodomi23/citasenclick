@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 const TABS = [
   { href: '/panel', label: 'Agenda' },
   { href: '/panel/caja', label: 'Caja' },
+  { href: '/panel/clientes', label: 'Clientes' },
   { href: '/panel/inventario', label: 'Inventario' },
   { href: '/panel/servicios', label: 'Servicios' },
   { href: '/panel/equipo', label: 'Equipo' },
@@ -14,7 +15,7 @@ const TABS = [
 ];
 
 /*
-  Las 7 pestañas necesitan más de 428px y en un celular hay 375: se reparten
+  Las 8 pestañas necesitan más de 428px y en un celular hay 375: se reparten
   en dos filas y vuelven a una sola desde 640px.
 
   Desde lg (tablet horizontal / desktop) dejan de ser tabs horizontales y se
