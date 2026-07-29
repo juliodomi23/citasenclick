@@ -3,6 +3,7 @@ import { sql } from '@/lib/db';
 import { requireBusiness } from '@/lib/auth';
 import { todayIn, addDays, addMonths, startOfWeek, startOfMonth, civilDate, isDate } from '@/lib/dates';
 import { setStatus } from './actions';
+import { completeAppointment } from './admin';
 import { ChevronLeft, ChevronRight, MessageCircle, AlertTriangle, Calendar } from '@/components/icons';
 
 type Biz = { id: string; name: string; slug: string; timezone: string };
@@ -10,7 +11,7 @@ type Biz = { id: string; name: string; slug: string; timezone: string };
 type Appt = {
   id: string; starts_at: string; ends_at: string; status: string;
   customer_name: string; customer_phone: string; notes: string | null;
-  service_name: string; staff_name: string; staff_id: string;
+  service_name: string; staff_name: string; staff_id: string; price_cents: number;
 };
 
 /** Construye la URL del panel preservando los filtros activos. */
@@ -65,7 +66,7 @@ export default async function Panel(props: PageProps<'/panel'>) {
 
   const appts = (await sql`
     select a.id, a.starts_at, a.ends_at, a.status, a.customer_name, a.customer_phone,
-           a.notes, s.name as service_name, st.name as staff_name, st.id as staff_id
+           a.notes, s.name as service_name, s.price_cents, st.name as staff_name, st.id as staff_id
       from appointments a
       join services s on s.id = a.service_id
       join staff st on st.id = a.staff_id
@@ -309,7 +310,7 @@ function ApptCard({
           <StatusButton {...{ date, view, staff }} id={a.id} status="confirmed" label="Reactivar" />
         ) : (
           <>
-            <StatusButton {...{ date, view, staff }} id={a.id} status="completed" label="Atendida" primary
+            <ChargeForm {...{ date, view, staff }} id={a.id} defaultAmount={a.price_cents}
               contexto={`la cita de ${a.customer_name} de las ${hhmm(a.starts_at)}`} />
             <StatusButton {...{ date, view, staff }} id={a.id} status="no_show" label="No llegó"
               contexto={`la cita de ${a.customer_name} de las ${hhmm(a.starts_at)}`} />
@@ -321,6 +322,54 @@ function ApptCard({
         )}
       </div>
     </li>
+  );
+}
+
+/**
+ * Marcar "Atendida" cobra al mismo tiempo: sin esto el corte de caja del día
+ * nunca cuadra con lo que realmente se atendió. Monto precargado con el
+ * precio del servicio por si se cobró distinto (descuento, propina aparte).
+ */
+function ChargeForm({
+  id, date, view, staff, defaultAmount, contexto,
+}: {
+  id: string; date: string; view: string; staff: string | null; defaultAmount: number; contexto: string;
+}) {
+  const fieldClass =
+    'min-h-11 rounded-xl border border-border-control bg-cream px-2 text-sm text-ink';
+  return (
+    <form action={completeAppointment} className="flex flex-wrap items-center gap-1.5">
+      <input type="hidden" name="id" value={id} />
+      <input type="hidden" name="date" value={date} />
+      <input type="hidden" name="view" value={view} />
+      {staff && <input type="hidden" name="staff" value={staff} />}
+      <input
+        name="amount"
+        type="number"
+        inputMode="decimal"
+        min={0}
+        step="1"
+        defaultValue={(defaultAmount / 100).toFixed(0)}
+        aria-label={`Monto cobrado — ${contexto}`}
+        className={`w-16 ${fieldClass}`}
+      />
+      <select
+        name="payment_method"
+        defaultValue="efectivo"
+        aria-label={`Método de pago — ${contexto}`}
+        className={fieldClass}
+      >
+        <option value="efectivo">Efectivo</option>
+        <option value="tarjeta">Tarjeta</option>
+        <option value="transferencia">Transferencia</option>
+      </select>
+      <button
+        aria-label={`Atendida — ${contexto}`}
+        className="min-h-11 cursor-pointer rounded-xl border border-accent-600 bg-accent-600 px-4 text-sm font-medium text-white transition-colors duration-200 hover:bg-accent-700"
+      >
+        Atendida
+      </button>
+    </form>
   );
 }
 

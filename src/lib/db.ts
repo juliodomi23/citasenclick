@@ -10,8 +10,12 @@ import postgres from 'postgres';
 // módulo: así un test que solo usa funciones puras de un archivo que importa
 // `sql` no exige DATABASE_URL.
 let client: postgres.Sql | null = null;
+const getClient = () => (client ??= postgres(process.env.DATABASE_URL!));
 
-export const sql = ((...args: Parameters<postgres.Sql>) => {
-  client ??= postgres(process.env.DATABASE_URL!);
-  return client(...args);
-}) as postgres.Sql;
+export const sql = ((...args: Parameters<postgres.Sql>) => getClient()(...args)) as postgres.Sql;
+
+// begin() vive en el cliente real, no en este wrapper: se reexpone aparte
+// para las mutaciones que necesitan que dos inserts caigan juntos o ninguno
+// (p.ej. cobrar una cita: marcarla atendida + registrar la venta).
+export const begin = ((...args: Parameters<postgres.Sql['begin']>) =>
+  getClient().begin(...args)) as postgres.Sql['begin'];

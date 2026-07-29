@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { sql } from '@/lib/db';
+import { sql, begin } from '@/lib/db';
 import { requireBusiness } from '@/lib/auth';
 import { isUuid, normalizePhoneMX } from '@/lib/validation';
 import { isDate } from '@/lib/dates';
@@ -245,4 +245,116 @@ export async function saveSettings(form: FormData) {
      where id = ${business.id}
   `;
   refresh('ajustes');
+}
+
+/* ---------------------------------------------------------------- inventario */
+
+export async function saveProduct(form: FormData) {
+  const { business } = await guard(form);
+  const id = str(form, 'id');
+  const name = str(form, 'name');
+  const pesos = Number.parseFloat(str(form, 'price') || '0');
+  const stock = int(form, 'stock', 0);
+
+  if (!name || stock < 0) return;
+  const priceCents = Math.round(Math.max(0, Number.isFinite(pesos) ? pesos : 0) * 100);
+
+  if (id) {
+    if (!isUuid(id)) return;
+    await sql`
+      update products set name = ${name}, price_cents = ${priceCents}, stock = ${stock}
+       where id = ${id} and business_id = ${business.id}
+    `;
+  } else {
+    await sql`
+      insert into products (business_id, name, price_cents, stock)
+      values (${business.id}, ${name}, ${priceCents}, ${stock})
+    `;
+  }
+  refresh('inventario');
+}
+
+export async function toggleProduct(form: FormData) {
+  const { business } = await guard(form);
+  const id = str(form, 'id');
+  if (!isUuid(id)) return;
+  // Sin borrado duro: ventas pasadas siguen apuntando al producto.
+  await sql`
+    update products set active = not active
+     where id = ${id} and business_id = ${business.id}
+  `;
+  refresh('inventario');
+}
+
+/* --------------------------------------------------------------------- caja */
+
+const PAYMENT_METHODS = ['efectivo', 'tarjeta', 'transferencia'];
+
+/** Cobra una cita: la marca como atendida y registra el ingreso en el corte de caja. */
+export async function completeAppointment(form: FormData) {
+  const { business } = await guard(form);
+  const id = str(form, 'id');
+  const date = str(form, 'date');
+  const view = str(form, 'view');
+  const staffFilter = str(form, 'staff');
+  const method = str(form, 'payment_method');
+  const pesos = Number.parseFloat(str(form, 'amount') || '0');
+
+  if (!isUuid(id) || !PAYMENT_METHODS.includes(method)) return;
+  const amountCents = Math.round(Math.max(0, Number.isFinite(pesos) ? pesos : 0) * 100);
+
+  const rows = (await sql`
+    select a.staff_id, s.name as service_name
+      from appointments a
+      join services s on s.id = a.service_id
+     where a.id = ${id} and a.business_id = ${business.id} and a.status = 'confirmed'
+  `) as { staff_id: string; service_name: string }[];
+  const appt = rows[0];
+  if (!appt) return;
+
+  await begin(async (tx) => {
+    await tx`update appointments set status = 'completed' where id = ${id}`;
+    await tx`
+      insert into sales (business_id, staff_id, appointment_id, description, payment_method, total_cents)
+      values (${business.id}, ${appt.staff_id}, ${id}, ${appt.service_name}, ${method}, ${amountCents})
+    `;
+  });
+
+  revalidatePath('/panel');
+  revalidatePath('/panel/caja');
+  const back = `/panel?date=${date}&view=${view}${staffFilter && isUuid(staffFilter) ? `&staff=${staffFilter}` : ''}`;
+  redirect(back);
+}
+
+/** Venta de un producto suelto (sin cita): descuenta stock y registra el cobro. */
+export async function sellProduct(form: FormData) {
+  const { business } = await guard(form);
+  const productId = str(form, 'product_id');
+  const qty = int(form, 'qty', 1);
+  const method = str(form, 'payment_method');
+  const date = str(form, 'date');
+
+  if (!isUuid(productId) || qty <= 0 || !PAYMENT_METHODS.includes(method)) return;
+
+  const rows = (await sql`
+    select name, price_cents from products
+     where id = ${productId} and business_id = ${business.id} and active
+  `) as { name: string; price_cents: number }[];
+  const product = rows[0];
+  if (!product) return;
+
+  const totalCents = product.price_cents * qty;
+
+  await begin(async (tx) => {
+    await tx`
+      insert into sales (business_id, product_id, description, qty, payment_method, total_cents)
+      values (${business.id}, ${productId}, ${product.name}, ${qty}, ${method}, ${totalCents})
+    `;
+    // No vende de más: si piden más de lo que hay, se queda en 0 en vez de negativo.
+    await tx`update products set stock = greatest(stock - ${qty}, 0) where id = ${productId}`;
+  });
+
+  revalidatePath('/panel/caja');
+  revalidatePath('/panel/inventario');
+  redirect(`/panel/caja?date=${date}&ok=1`);
 }
