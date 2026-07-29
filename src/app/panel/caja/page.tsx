@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { sql } from '@/lib/db';
 import { requireBusiness } from '@/lib/auth';
 import { todayIn, addDays, isDate } from '@/lib/dates';
-import { sellProduct } from '../admin';
+import { sellProduct, addCashMovement } from '../admin';
 import { Card, Field, Select, Input, Button, Guardado } from '@/components/panel-ui';
 import { ChevronLeft, ChevronRight } from '@/components/icons';
 
@@ -12,9 +12,14 @@ type Venta = {
 };
 
 type ProductOption = { id: string; name: string; price_cents: number };
+type Movimiento = { type: string; amount_cents: number };
 
 const METHOD_LABEL: Record<string, string> = {
   efectivo: 'Efectivo', tarjeta: 'Tarjeta', transferencia: 'Transferencia',
+};
+
+const MOVEMENT_LABEL: Record<string, string> = {
+  apertura: 'Fondo inicial', retiro: 'Retiro', deposito: 'Depósito', cierre: 'Conteo final',
 };
 
 const money = (cents: number) => `$${(cents / 100).toFixed(0)}`;
@@ -64,6 +69,27 @@ export default async function Caja(props: PageProps<'/panel/caja'>) {
     porBarbero.set(key, acc);
   }
   const totalComisiones = ventas.reduce((n, v) => n + v.commission_cents, 0);
+
+  // El arqueo solo tiene sentido para un día concreto: "esperado vs contado"
+  // de un rango de dos semanas no significa nada, cada día se cierra aparte.
+  const movimientos = !isRange
+    ? ((await sql`
+        select type, amount_cents from cash_movements
+         where business_id = ${business.id}
+           and created_at >= (${date}::timestamp at time zone ${business.timezone})
+           and created_at <  ((${date}::date + 1)::timestamp at time zone ${business.timezone})
+         order by created_at
+      `) as Movimiento[])
+    : [];
+  const sumaTipo = (t: string) => movimientos.filter((m) => m.type === t).reduce((n, m) => n + m.amount_cents, 0);
+  const apertura = sumaTipo('apertura');
+  const retiros = sumaTipo('retiro');
+  const depositos = sumaTipo('deposito');
+  const cierreMovs = movimientos.filter((m) => m.type === 'cierre');
+  const contado = cierreMovs.length > 0 ? cierreMovs[cierreMovs.length - 1].amount_cents : null;
+  const ventasEfectivo = porMetodo.get('efectivo') ?? 0;
+  const esperado = apertura + ventasEfectivo + depositos - retiros;
+  const diferencia = contado != null ? contado - esperado : null;
 
   const fmtCorta = (d: string) =>
     new Intl.DateTimeFormat('es-MX', { timeZone: business.timezone, day: 'numeric', month: 'short' })
@@ -194,6 +220,70 @@ export default async function Caja(props: PageProps<'/panel/caja'>) {
                   </li>
                 ))}
               </ul>
+            </Card>
+          )}
+
+          {!isRange && (
+            <Card title="Arqueo de caja">
+              <ul className="space-y-1 text-sm text-ink-soft">
+                <li className="flex justify-between">
+                  <span>Fondo inicial</span>
+                  <span className="tabular-nums">{money(apertura)}</span>
+                </li>
+                <li className="flex justify-between">
+                  <span>Ventas en efectivo</span>
+                  <span className="tabular-nums">{money(ventasEfectivo)}</span>
+                </li>
+                <li className="flex justify-between">
+                  <span>Depósitos</span>
+                  <span className="tabular-nums">{money(depositos)}</span>
+                </li>
+                <li className="flex justify-between">
+                  <span>Retiros</span>
+                  <span className="tabular-nums">−{money(retiros)}</span>
+                </li>
+                <li className="flex justify-between border-t border-blush-100 pt-1.5 font-medium text-ink">
+                  <span>Esperado en caja</span>
+                  <span className="tabular-nums">{money(esperado)}</span>
+                </li>
+                {contado != null && (
+                  <>
+                    <li className="flex justify-between">
+                      <span>Contado</span>
+                      <span className="tabular-nums">{money(contado)}</span>
+                    </li>
+                    <li className={`flex justify-between font-medium ${
+                      diferencia === 0 ? 'text-success-text' : 'text-danger-text'
+                    }`}>
+                      <span>Diferencia</span>
+                      <span className="tabular-nums">
+                        {diferencia! > 0 ? '+' : ''}{money(diferencia!)}
+                      </span>
+                    </li>
+                  </>
+                )}
+              </ul>
+
+              <form action={addCashMovement} className="mt-4 space-y-3 border-t border-blush-100 pt-4">
+                <input type="hidden" name="date" value={date} />
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Movimiento">
+                    <Select name="type" defaultValue="retiro">
+                      <option value="apertura">Fondo inicial</option>
+                      <option value="retiro">Retiro</option>
+                      <option value="deposito">Depósito</option>
+                      <option value="cierre">Conteo final</option>
+                    </Select>
+                  </Field>
+                  <Field label="Monto" hint="MXN">
+                    <Input name="amount" type="number" inputMode="decimal" min={0} step="1" required />
+                  </Field>
+                </div>
+                <Field label="Nota" hint="opcional">
+                  <Input name="note" placeholder="Cambio para el día siguiente" maxLength={120} />
+                </Field>
+                <Button type="submit" tone="ghost">Registrar movimiento</Button>
+              </form>
             </Card>
           )}
         </div>

@@ -370,3 +370,29 @@ export async function sellProduct(form: FormData) {
   revalidatePath('/panel/inventario');
   redirect(`/panel/caja?date=${date}&ok=1`);
 }
+
+const CASH_MOVEMENT_TYPES = ['apertura', 'retiro', 'deposito', 'cierre'];
+
+/**
+ * Arqueo de caja: fondo inicial, retiros, depósitos y el conteo físico al
+ * cerrar. Todo vive en la misma tabla porque todo es "algo que se anota de
+ * la caja ese día" — separarlo en varias tablas no simplifica nada aquí.
+ */
+export async function addCashMovement(form: FormData) {
+  const { business } = await guard(form);
+  const type = str(form, 'type');
+  const pesos = Number.parseFloat(str(form, 'amount') || '0');
+  const note = str(form, 'note') || null;
+  const date = str(form, 'date');
+
+  if (!CASH_MOVEMENT_TYPES.includes(type)) return;
+  const amountCents = Math.round(Math.max(0, Number.isFinite(pesos) ? pesos : 0) * 100);
+
+  await sql`
+    insert into cash_movements (business_id, type, amount_cents, note)
+    values (${business.id}, ${type}, ${amountCents}, ${note})
+  `;
+
+  revalidatePath('/panel/caja');
+  redirect(`/panel/caja?date=${date}&ok=1`);
+}
