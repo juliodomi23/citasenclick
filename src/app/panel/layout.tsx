@@ -13,7 +13,13 @@ export default async function PanelLayout({ children }: { children: React.ReactN
 
   return (
     <div data-theme={business.theme} className="theme-halo min-h-full">
-      <div className="mx-auto w-full max-w-2xl px-4 pb-16 pt-8">
+      {/*
+        max-w-2xl (672px) es del tamaño justo para celular/tablet vertical,
+        pero en tablet horizontal (1024px+) y desktop deja cientos de píxeles
+        vacíos a los lados — la razón de que el panel se sintiera "de celular
+        estirado" en el mostrador, que es donde más se usa.
+      */}
+      <div className="mx-auto w-full max-w-2xl px-4 pb-16 pt-8 lg:max-w-6xl">
         <header className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
           <div className="flex items-center gap-3">
             {business.logo_url && (
@@ -38,9 +44,12 @@ export default async function PanelLayout({ children }: { children: React.ReactN
           </div>
         </header>
 
-        <PanelNav />
-
-        {children}
+        <div className="mt-5 lg:flex lg:items-start lg:gap-8">
+          <PanelNav />
+          {/* Cada page.tsx ya trae su propio <main>: este div solo es el
+              carril de ancho, no se puede anidar otro <main> dentro. */}
+          <div className="mt-5 min-w-0 flex-1 lg:mt-0">{children}</div>
+        </div>
       </div>
     </div>
   );

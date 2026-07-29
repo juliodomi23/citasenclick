@@ -81,6 +81,17 @@ export default async function Panel(props: PageProps<'/panel'>) {
   const byDay = new Map<string, Appt[]>(days.map((d) => [d, []]));
   for (const a of appts) byDay.get(civilDate(a.starts_at, biz.timezone))?.push(a);
 
+  // Solo en vista Día: lo que ya se cobró ese día, para el resumen lateral
+  // de tablet/desktop. En semana/mes no hay un solo "corte" que mostrar.
+  const cobradoDia = !week && !month
+    ? ((await sql`
+        select coalesce(sum(total_cents), 0)::int as total from sales
+         where business_id = ${biz.id}
+           and created_at >= (${date}::timestamp at time zone ${biz.timezone})
+           and created_at <  ((${date}::date + 1)::timestamp at time zone ${biz.timezone})
+      `) as { total: number }[])[0].total
+    : null;
+
   const today = todayIn(biz.timezone);
   const activas = appts.filter((a) => a.status === 'confirmed').length;
   const nav = { date, view, staff: staffId };
@@ -94,12 +105,22 @@ export default async function Panel(props: PageProps<'/panel'>) {
           timeZone: biz.timezone, weekday: 'long', day: 'numeric', month: 'long',
         }).format(new Date(`${date}T12:00:00Z`));
 
+  const siguiente = !week && !month
+    ? appts.find((a) => a.status === 'confirmed' && new Date(a.starts_at).getTime() >= Date.now())
+    : undefined;
+
   const prevTo = month ? addMonths(date, -1) : addDays(date, week ? -7 : -1);
   const nextTo = month ? addMonths(date, 1) : addDays(date, week ? 7 : 1);
   const enRangoActual = month ? startOfMonth(date) === startOfMonth(today) : days.includes(today);
 
+  const conResumen = !week && !month;
+  const fmtHora = (iso: string) =>
+    new Intl.DateTimeFormat('es-MX', { timeZone: biz.timezone, hour: '2-digit', minute: '2-digit', hour12: false })
+      .format(new Date(iso));
+
   return (
-    <main>
+    <main className={conResumen ? 'lg:grid lg:grid-cols-[1fr_300px] lg:items-start lg:gap-6' : ''}>
+    <div>
       <div className="mt-5 inline-flex rounded-xl border border-blush-200 bg-surface p-1 shadow-soft">
         <ViewTab {...nav} view="day" active={!week && !month} label="Día" />
         <ViewTab {...nav} view="week" active={week} label="Semana" />
@@ -182,6 +203,32 @@ export default async function Panel(props: PageProps<'/panel'>) {
           })}
         </div>
       )}
+    </div>
+
+    {conResumen && (
+      <aside className="mt-6 space-y-4 rounded-2xl border border-blush-200 bg-surface p-5 shadow-soft lg:mt-5">
+        <h2 className="font-display text-lg text-ink">Resumen del día</h2>
+        <div>
+          <p className="font-display text-2xl text-accent-700">${((cobradoDia ?? 0) / 100).toFixed(0)}</p>
+          <p className="text-sm text-ink-muted">cobrado hoy</p>
+        </div>
+        <p className="text-sm text-ink-soft">
+          {activas} cita{activas === 1 ? '' : 's'} activa{activas === 1 ? '' : 's'}
+        </p>
+        {siguiente && (
+          <div>
+            <p className="text-xs text-ink-muted">Siguiente</p>
+            <p className="text-sm text-ink">{fmtHora(siguiente.starts_at)} · {siguiente.customer_name}</p>
+          </div>
+        )}
+        <Link
+          href="/panel/caja"
+          className="inline-flex min-h-11 cursor-pointer items-center text-sm text-accent-700 underline underline-offset-2"
+        >
+          Ver corte de caja completo
+        </Link>
+      </aside>
+    )}
     </main>
   );
 }

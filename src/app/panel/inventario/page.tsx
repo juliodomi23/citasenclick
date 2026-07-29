@@ -24,49 +24,53 @@ export default async function Inventario(props: PageProps<'/panel/inventario'>) 
         <Empty>Aún no tienes productos. Agrega el primero abajo.</Empty>
       )}
 
-      {products.map((p) => (
-        <Card key={p.id}>
-          <form action={saveProduct} className="space-y-4">
-            <input type="hidden" name="id" value={p.id} />
+      {products.length > 0 && (
+        <div className="grid gap-4 lg:grid-cols-2">
+          {products.map((p) => (
+            <Card key={p.id}>
+              <form action={saveProduct} className="space-y-4">
+                <input type="hidden" name="id" value={p.id} />
 
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex-1">
-                <Field label="Nombre">
-                  <Input name="name" defaultValue={p.name} required maxLength={80} />
-                </Field>
-              </div>
-              {!p.active && (
-                <span className="mt-7 shrink-0 rounded-full border border-blush-200 bg-blush-50 px-2.5 py-1 text-xs text-ink-muted">
-                  Oculto
-                </span>
-              )}
-            </div>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1">
+                    <Field label="Nombre">
+                      <Input name="name" defaultValue={p.name} required maxLength={80} />
+                    </Field>
+                  </div>
+                  {!p.active && (
+                    <span className="mt-7 shrink-0 rounded-full border border-blush-200 bg-blush-50 px-2.5 py-1 text-xs text-ink-muted">
+                      Oculto
+                    </span>
+                  )}
+                </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Precio" hint="MXN">
-                <Input name="price" type="number" inputMode="decimal"
-                  min={0} step="1" defaultValue={(p.price_cents / 100).toFixed(0)} />
-              </Field>
-              <Field label="Existencias">
-                <Input name="stock" type="number" inputMode="numeric"
-                  min={0} step="1" defaultValue={p.stock} required />
-              </Field>
-            </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Precio" hint="MXN">
+                    <Input name="price" type="number" inputMode="decimal"
+                      min={0} step="1" defaultValue={(p.price_cents / 100).toFixed(0)} />
+                  </Field>
+                  <Field label="Existencias">
+                    <Input name="stock" type="number" inputMode="numeric"
+                      min={0} step="1" defaultValue={p.stock} required />
+                  </Field>
+                </div>
 
-            <div className="flex flex-wrap gap-2">
-              <Button type="submit" aria-label={`Guardar ${p.name}`}>Guardar</Button>
-              <Button
-                type="submit"
-                tone={p.active ? 'danger' : 'ghost'}
-                formAction={toggleProduct}
-                aria-label={`${p.active ? 'Ocultar' : 'Volver a mostrar'} ${p.name}`}
-              >
-                {p.active ? 'Ocultar' : 'Volver a mostrar'}
-              </Button>
-            </div>
-          </form>
-        </Card>
-      ))}
+                <div className="flex flex-wrap gap-2">
+                  <Button type="submit" aria-label={`Guardar ${p.name}`}>Guardar</Button>
+                  <Button
+                    type="submit"
+                    tone={p.active ? 'danger' : 'ghost'}
+                    formAction={toggleProduct}
+                    aria-label={`${p.active ? 'Ocultar' : 'Volver a mostrar'} ${p.name}`}
+                  >
+                    {p.active ? 'Ocultar' : 'Volver a mostrar'}
+                  </Button>
+                </div>
+              </form>
+            </Card>
+          ))}
+        </div>
+      )}
 
       <Card title="Agregar producto" hint="Cera, shampoo, cualquier cosa que vendas suelta.">
         <form action={saveProduct} className="space-y-4">

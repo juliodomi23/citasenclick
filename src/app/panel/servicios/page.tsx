@@ -25,53 +25,57 @@ export default async function Servicios(props: PageProps<'/panel/servicios'>) {
         <Empty>Aún no tienes servicios. Agrega el primero abajo.</Empty>
       )}
 
-      {services.map((s) => (
-        <Card key={s.id}>
-          <form action={saveService} className="space-y-4">
-            <input type="hidden" name="id" value={s.id} />
+      {services.length > 0 && (
+        <div className="grid gap-4 lg:grid-cols-2">
+          {services.map((s) => (
+            <Card key={s.id}>
+              <form action={saveService} className="space-y-4">
+                <input type="hidden" name="id" value={s.id} />
 
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex-1">
-                <Field label="Nombre">
-                  <Input name="name" defaultValue={s.name} required maxLength={80} />
-                </Field>
-              </div>
-              {!s.active && (
-                <span className="mt-7 shrink-0 rounded-full border border-blush-200 bg-blush-50 px-2.5 py-1 text-xs text-ink-muted">
-                  Oculto
-                </span>
-              )}
-            </div>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1">
+                    <Field label="Nombre">
+                      <Input name="name" defaultValue={s.name} required maxLength={80} />
+                    </Field>
+                  </div>
+                  {!s.active && (
+                    <span className="mt-7 shrink-0 rounded-full border border-blush-200 bg-blush-50 px-2.5 py-1 text-xs text-ink-muted">
+                      Oculto
+                    </span>
+                  )}
+                </div>
 
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              <Field label="Duración" hint="min">
-                <Input name="duration_minutes" type="number" inputMode="numeric"
-                  min={5} max={720} step={5} defaultValue={s.duration_minutes} required />
-              </Field>
-              <Field label="Limpieza" hint="min">
-                <Input name="buffer_after_minutes" type="number" inputMode="numeric"
-                  min={0} max={240} step={5} defaultValue={s.buffer_after_minutes} />
-              </Field>
-              <Field label="Precio" hint="MXN">
-                <Input name="price" type="number" inputMode="decimal"
-                  min={0} step="1" defaultValue={(s.price_cents / 100).toFixed(0)} />
-              </Field>
-            </div>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  <Field label="Duración" hint="min">
+                    <Input name="duration_minutes" type="number" inputMode="numeric"
+                      min={5} max={720} step={5} defaultValue={s.duration_minutes} required />
+                  </Field>
+                  <Field label="Limpieza" hint="min">
+                    <Input name="buffer_after_minutes" type="number" inputMode="numeric"
+                      min={0} max={240} step={5} defaultValue={s.buffer_after_minutes} />
+                  </Field>
+                  <Field label="Precio" hint="MXN">
+                    <Input name="price" type="number" inputMode="decimal"
+                      min={0} step="1" defaultValue={(s.price_cents / 100).toFixed(0)} />
+                  </Field>
+                </div>
 
-            <div className="flex flex-wrap gap-2">
-              <Button type="submit" aria-label={`Guardar ${s.name}`}>Guardar</Button>
-              <Button
-                type="submit"
-                tone={s.active ? 'danger' : 'ghost'}
-                formAction={toggleService}
-                aria-label={`${s.active ? 'Ocultar' : 'Volver a mostrar'} ${s.name}`}
-              >
-                {s.active ? 'Ocultar del sitio' : 'Volver a mostrar'}
-              </Button>
-            </div>
-          </form>
-        </Card>
-      ))}
+                <div className="flex flex-wrap gap-2">
+                  <Button type="submit" aria-label={`Guardar ${s.name}`}>Guardar</Button>
+                  <Button
+                    type="submit"
+                    tone={s.active ? 'danger' : 'ghost'}
+                    formAction={toggleService}
+                    aria-label={`${s.active ? 'Ocultar' : 'Volver a mostrar'} ${s.name}`}
+                  >
+                    {s.active ? 'Ocultar del sitio' : 'Volver a mostrar'}
+                  </Button>
+                </div>
+              </form>
+            </Card>
+          ))}
+        </div>
+      )}
 
       <Card
         title="Agregar servicio"

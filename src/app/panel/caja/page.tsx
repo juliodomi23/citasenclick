@@ -93,87 +93,96 @@ export default async function Caja(props: PageProps<'/panel/caja'>) {
         </Link>
       </nav>
 
-      <Card title="Corte del día">
-        <p className="font-display text-3xl text-accent-700">{money(total)}</p>
-        {ventas.length === 0 ? (
-          <p className="mt-2 text-sm text-ink-muted">Sin cobros este día.</p>
-        ) : (
-          <ul className="mt-3 space-y-1 text-sm text-ink-soft">
-            {[...porMetodo].map(([m, c]) => (
-              <li key={m} className="flex justify-between">
-                <span>{METHOD_LABEL[m] ?? m}</span>
-                <span className="tabular-nums">{money(c)}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Card>
-
-      {porBarbero.size > 0 && (
-        <Card title="Por especialista">
-          <ul className="space-y-1 text-sm text-ink-soft">
-            {[...porBarbero].map(([n, c]) => (
-              <li key={n} className="flex justify-between">
-                <span>{n}</span>
-                <span className="tabular-nums">{money(c)}</span>
-              </li>
-            ))}
-          </ul>
-        </Card>
-      )}
-
-      {ventas.length > 0 && (
-        <Card title="Movimientos">
-          <ul className="divide-y divide-blush-100 text-sm">
-            {ventas.map((v) => (
-              <li key={v.id} className="flex items-center justify-between gap-3 py-2">
-                <div className="min-w-0">
-                  <p className="truncate text-ink">
-                    {v.description}{v.qty > 1 ? ` ×${v.qty}` : ''}
-                  </p>
-                  <p className="text-xs text-ink-muted">
-                    {hhmm(v.created_at)} · {METHOD_LABEL[v.payment_method] ?? v.payment_method}
-                    {v.staff_name ? ` · ${v.staff_name}` : ''}
-                  </p>
-                </div>
-                <span className="shrink-0 tabular-nums text-ink">{money(v.total_cents)}</span>
-              </li>
-            ))}
-          </ul>
-        </Card>
-      )}
-
-      <Card
-        title="Vender producto"
-        hint={products.length === 0 ? 'Aún no tienes productos activos. Agrega uno en Inventario.' : undefined}
-      >
-        {products.length > 0 && (
-          <form action={sellProduct} className="space-y-4">
-            <input type="hidden" name="date" value={date} />
-            <Field label="Producto">
-              <Select name="product_id" required defaultValue="">
-                <option value="" disabled>Elige un producto</option>
-                {products.map((p) => (
-                  <option key={p.id} value={p.id}>{p.name} · {money(p.price_cents)}</option>
+      {/* Desde tablet horizontal: corte + especialista a la izquierda,
+          vender producto + movimientos a la derecha — así se ve el corte
+          completo mientras se registra una venta, sin scroll. */}
+      <div className="space-y-4 lg:grid lg:grid-cols-2 lg:items-start lg:gap-4 lg:space-y-0">
+        <div className="space-y-4">
+          <Card title="Corte del día">
+            <p className="font-display text-3xl text-accent-700">{money(total)}</p>
+            {ventas.length === 0 ? (
+              <p className="mt-2 text-sm text-ink-muted">Sin cobros este día.</p>
+            ) : (
+              <ul className="mt-3 space-y-1 text-sm text-ink-soft">
+                {[...porMetodo].map(([m, c]) => (
+                  <li key={m} className="flex justify-between">
+                    <span>{METHOD_LABEL[m] ?? m}</span>
+                    <span className="tabular-nums">{money(c)}</span>
+                  </li>
                 ))}
-              </Select>
-            </Field>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Cantidad">
-                <Input name="qty" type="number" inputMode="numeric" min={1} step={1} defaultValue={1} required />
-              </Field>
-              <Field label="Método de pago">
-                <Select name="payment_method" defaultValue="efectivo">
-                  <option value="efectivo">Efectivo</option>
-                  <option value="tarjeta">Tarjeta</option>
-                  <option value="transferencia">Transferencia</option>
-                </Select>
-              </Field>
-            </div>
-            <Button type="submit">Registrar venta</Button>
-          </form>
-        )}
-      </Card>
+              </ul>
+            )}
+          </Card>
+
+          {porBarbero.size > 0 && (
+            <Card title="Por especialista">
+              <ul className="space-y-1 text-sm text-ink-soft">
+                {[...porBarbero].map(([n, c]) => (
+                  <li key={n} className="flex justify-between">
+                    <span>{n}</span>
+                    <span className="tabular-nums">{money(c)}</span>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
+        </div>
+
+        <div className="space-y-4">
+          <Card
+            title="Vender producto"
+            hint={products.length === 0 ? 'Aún no tienes productos activos. Agrega uno en Inventario.' : undefined}
+          >
+            {products.length > 0 && (
+              <form action={sellProduct} className="space-y-4">
+                <input type="hidden" name="date" value={date} />
+                <Field label="Producto">
+                  <Select name="product_id" required defaultValue="">
+                    <option value="" disabled>Elige un producto</option>
+                    {products.map((p) => (
+                      <option key={p.id} value={p.id}>{p.name} · {money(p.price_cents)}</option>
+                    ))}
+                  </Select>
+                </Field>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Cantidad">
+                    <Input name="qty" type="number" inputMode="numeric" min={1} step={1} defaultValue={1} required />
+                  </Field>
+                  <Field label="Método de pago">
+                    <Select name="payment_method" defaultValue="efectivo">
+                      <option value="efectivo">Efectivo</option>
+                      <option value="tarjeta">Tarjeta</option>
+                      <option value="transferencia">Transferencia</option>
+                    </Select>
+                  </Field>
+                </div>
+                <Button type="submit">Registrar venta</Button>
+              </form>
+            )}
+          </Card>
+
+          {ventas.length > 0 && (
+            <Card title="Movimientos">
+              <ul className="divide-y divide-blush-100 text-sm">
+                {ventas.map((v) => (
+                  <li key={v.id} className="flex items-center justify-between gap-3 py-2">
+                    <div className="min-w-0">
+                      <p className="truncate text-ink">
+                        {v.description}{v.qty > 1 ? ` ×${v.qty}` : ''}
+                      </p>
+                      <p className="text-xs text-ink-muted">
+                        {hhmm(v.created_at)} · {METHOD_LABEL[v.payment_method] ?? v.payment_method}
+                        {v.staff_name ? ` · ${v.staff_name}` : ''}
+                      </p>
+                    </div>
+                    <span className="shrink-0 tabular-nums text-ink">{money(v.total_cents)}</span>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
+        </div>
+      </div>
     </main>
   );
 }

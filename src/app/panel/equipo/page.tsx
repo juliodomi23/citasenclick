@@ -29,6 +29,8 @@ export default async function Equipo(props: PageProps<'/panel/equipo'>) {
       <Guardado visible={q.ok === '1'} />
       {staff.length === 0 && <Empty>Aún no tienes especialistas. Agrega el primero abajo.</Empty>}
 
+      {staff.length > 0 && (
+      <div className="grid gap-4 lg:grid-cols-2">
       {staff.map((p) => (
         <Card key={p.id}>
           <form action={saveStaff} className="flex flex-wrap items-end gap-3">
@@ -84,6 +86,8 @@ export default async function Equipo(props: PageProps<'/panel/equipo'>) {
           </form>
         </Card>
       ))}
+      </div>
+      )}
 
       <Card title="Agregar especialista">
         <form action={saveStaff} className="flex flex-wrap items-end gap-3">
