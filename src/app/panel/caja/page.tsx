@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { sql } from '@/lib/db';
 import { requireBusiness } from '@/lib/auth';
 import { todayIn, addDays, isDate } from '@/lib/dates';
-import { sellProduct, addCashMovement } from '../admin';
+import { sellProduct, addCashMovement, completeAppointment, chargeService } from '../admin';
 import { Card, Field, Select, Input, Button, Guardado } from '@/components/panel-ui';
 import { ChevronLeft, ChevronRight } from '@/components/icons';
 
@@ -12,7 +12,13 @@ type Venta = {
 };
 
 type ProductOption = { id: string; name: string; price_cents: number };
+type ServiceOption = { id: string; name: string; price_cents: number };
+type StaffOption = { id: string; name: string };
 type Movimiento = { type: string; amount_cents: number };
+type CitaPendiente = {
+  id: string; starts_at: string; customer_name: string; service_name: string;
+  staff_name: string; price_cents: number;
+};
 
 const METHOD_LABEL: Record<string, string> = {
   efectivo: 'Efectivo', tarjeta: 'Tarjeta', transferencia: 'Transferencia',
@@ -54,6 +60,34 @@ export default async function Caja(props: PageProps<'/panel/caja'>) {
     select id, name, price_cents from products
      where business_id = ${business.id} and active order by name
   `) as ProductOption[];
+
+  // Cobrar desde Caja, no desde la Agenda: aquí es donde de verdad se
+  // maneja el dinero, tiene más sentido que el clic de cobro viva aquí.
+  const citasPendientes = !isRange
+    ? ((await sql`
+        select a.id, a.starts_at, a.customer_name, s.name as service_name,
+               st.name as staff_name, s.price_cents
+          from appointments a
+          join services s on s.id = a.service_id
+          join staff st on st.id = a.staff_id
+         where a.business_id = ${business.id} and a.status = 'confirmed'
+           and a.starts_at >= (${date}::timestamp at time zone ${business.timezone})
+           and a.starts_at <  ((${date}::date + 1)::timestamp at time zone ${business.timezone})
+         order by a.starts_at
+      `) as CitaPendiente[])
+    : [];
+
+  const services = !isRange
+    ? ((await sql`
+        select id, name, price_cents from services
+         where business_id = ${business.id} and active order by name
+      `) as ServiceOption[])
+    : [];
+  const staffList = !isRange
+    ? ((await sql`
+        select id, name from staff where business_id = ${business.id} and active order by name
+      `) as StaffOption[])
+    : [];
 
   const total = ventas.reduce((n, v) => n + v.total_cents, 0);
 
@@ -302,6 +336,93 @@ export default async function Caja(props: PageProps<'/panel/caja'>) {
         </div>
 
         <div className="space-y-4">
+          {!isRange && citasPendientes.length > 0 && (
+            <Card title="Citas de este día">
+              <ul className="divide-y divide-blush-100">
+                {citasPendientes.map((c) => (
+                  <li key={c.id} className="py-3 first:pt-0 last:pb-0">
+                    <p className="text-sm text-ink">
+                      <span className="tabular-nums">{hhmm(c.starts_at)}</span> · {c.customer_name}
+                    </p>
+                    <p className="text-xs text-ink-muted">{c.service_name} · {c.staff_name}</p>
+                    <form action={completeAppointment} className="mt-2 flex flex-wrap items-center gap-1.5">
+                      <input type="hidden" name="id" value={c.id} />
+                      <input type="hidden" name="date" value={date} />
+                      <input type="hidden" name="back" value="/panel/caja" />
+                      <input
+                        name="amount"
+                        type="number"
+                        inputMode="decimal"
+                        min={0}
+                        step="1"
+                        defaultValue={(c.price_cents / 100).toFixed(0)}
+                        aria-label={`Monto cobrado a ${c.customer_name}`}
+                        className="min-h-11 w-16 rounded-xl border border-border-control bg-cream px-2 text-sm text-ink"
+                      />
+                      <select
+                        name="payment_method"
+                        defaultValue="efectivo"
+                        aria-label={`Método de pago de ${c.customer_name}`}
+                        className="min-h-11 rounded-xl border border-border-control bg-cream px-2 text-sm text-ink"
+                      >
+                        <option value="efectivo">Efectivo</option>
+                        <option value="tarjeta">Tarjeta</option>
+                        <option value="transferencia">Transferencia</option>
+                      </select>
+                      <button className="min-h-11 cursor-pointer rounded-xl border border-accent-600 bg-accent-600 px-3 text-sm font-medium text-white transition-colors duration-200 hover:bg-accent-700">
+                        Cobrar
+                      </button>
+                    </form>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
+
+          {!isRange && services.length > 0 && (
+            <Card title="Cobrar sin cita" hint="Alguien llegó sin agendar y ya se le atendió.">
+              <details>
+                <summary className="inline-flex min-h-11 cursor-pointer list-none items-center text-sm font-medium text-accent-700 [&::-webkit-details-marker]:hidden">
+                  + Registrar cobro
+                </summary>
+                <form action={chargeService} className="mt-3 space-y-4">
+                  <input type="hidden" name="date" value={date} />
+                  <Field label="Servicio">
+                    <Select name="service_id" required defaultValue="">
+                      <option value="" disabled>Elige un servicio</option>
+                      {services.map((s) => (
+                        <option key={s.id} value={s.id}>{s.name} · {money(s.price_cents)}</option>
+                      ))}
+                    </Select>
+                  </Field>
+                  {staffList.length > 0 && (
+                    <Field label="Especialista" hint="opcional">
+                      <Select name="staff_id" defaultValue="">
+                        <option value="">Sin especificar</option>
+                        {staffList.map((s) => (
+                          <option key={s.id} value={s.id}>{s.name}</option>
+                        ))}
+                      </Select>
+                    </Field>
+                  )}
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="Monto" hint="MXN">
+                      <Input name="amount" type="number" inputMode="decimal" min={0} step="1" required />
+                    </Field>
+                    <Field label="Método de pago">
+                      <Select name="payment_method" defaultValue="efectivo">
+                        <option value="efectivo">Efectivo</option>
+                        <option value="tarjeta">Tarjeta</option>
+                        <option value="transferencia">Transferencia</option>
+                      </Select>
+                    </Field>
+                  </div>
+                  <Button type="submit">Registrar cobro</Button>
+                </form>
+              </details>
+            </Card>
+          )}
+
           <Card
             title="Vender producto"
             hint={products.length === 0 ? 'Aún no tienes productos activos. Agrega uno en Inventario.' : undefined}

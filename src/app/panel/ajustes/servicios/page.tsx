@@ -106,6 +106,11 @@ export default async function Servicios(props: PageProps<'/panel/ajustes/servici
         Los servicios no se borran: se ocultan. Así las citas viejas conservan su
         historial.
       </p>
+      <p className="px-1 text-sm text-ink-muted">
+        Duración + Limpieza es lo que se bloquea en el calendario por cada cita.
+        Es distinto de &quot;cada cuánto empieza un horario&quot; (en Ajustes → Negocio):
+        eso aplica a todo el negocio, no a un servicio en particular.
+      </p>
     </main>
   );
 }

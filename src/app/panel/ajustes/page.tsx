@@ -77,6 +77,13 @@ export default async function Ajustes(props: PageProps<'/panel/ajustes'>) {
               El tiempo mínimo también es la ventana para que una clienta cancele
               sola. Después de eso solo puede avisarte por WhatsApp.
             </p>
+            <p className="text-sm text-ink-muted">
+              &quot;Cada cuánto empieza un horario&quot; es aparte de la duración de
+              cada servicio: aplica a todo el negocio y define en qué minutos se
+              ofrecen horas de inicio (ej. cada 15 → 9:00, 9:15, 9:30…). Si
+              quieres que todo empiece siempre en punto aunque un corte dure
+              menos de una hora, pon 60.
+            </p>
           </div>
         </Card>
 

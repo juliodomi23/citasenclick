@@ -305,6 +305,7 @@ export async function completeAppointment(form: FormData) {
   const date = str(form, 'date');
   const view = str(form, 'view');
   const staffFilter = str(form, 'staff');
+  const backBase = str(form, 'back') || '/panel';
   const method = str(form, 'payment_method');
   const pesos = Number.parseFloat(str(form, 'amount') || '0');
 
@@ -334,8 +335,10 @@ export async function completeAppointment(form: FormData) {
 
   revalidatePath('/panel');
   revalidatePath('/panel/caja');
-  const back = `/panel?date=${date}&view=${view}${staffFilter && isUuid(staffFilter) ? `&staff=${staffFilter}` : ''}`;
-  redirect(back);
+  const params = new URLSearchParams({ date });
+  if (view) params.set('view', view);
+  if (staffFilter && isUuid(staffFilter)) params.set('staff', staffFilter);
+  redirect(`${backBase}?${params.toString()}`);
 }
 
 /** Venta de un producto suelto (sin cita): descuenta stock y registra el cobro. */
@@ -368,6 +371,49 @@ export async function sellProduct(form: FormData) {
 
   revalidatePath('/panel/caja');
   revalidatePath('/panel/inventario');
+  redirect(`/panel/caja?date=${date}&ok=1`);
+}
+
+/**
+ * Cobra un servicio sin cita: alguien llegó sin agendar, se le atendió y se
+ * le cobra directo desde Caja. No toca `appointments` — no hay horario que
+ * bloquear, ya se hizo el servicio.
+ */
+export async function chargeService(form: FormData) {
+  const { business } = await guard(form);
+  const serviceId = str(form, 'service_id');
+  const staffId = str(form, 'staff_id');
+  const method = str(form, 'payment_method');
+  const pesos = Number.parseFloat(str(form, 'amount') || '0');
+  const date = str(form, 'date');
+
+  if (!isUuid(serviceId) || !PAYMENT_METHODS.includes(method)) return;
+  const amountCents = Math.round(Math.max(0, Number.isFinite(pesos) ? pesos : 0) * 100);
+
+  const rows = (await sql`
+    select name from services where id = ${serviceId} and business_id = ${business.id} and active
+  `) as { name: string }[];
+  const service = rows[0];
+  if (!service) return;
+
+  let staffIdValue: string | null = null;
+  let commissionCents = 0;
+  if (staffId && isUuid(staffId)) {
+    const staffRows = (await sql`
+      select commission_pct from staff where id = ${staffId} and business_id = ${business.id}
+    `) as { commission_pct: string }[];
+    if (staffRows[0]) {
+      staffIdValue = staffId;
+      commissionCents = Math.round(amountCents * (Number(staffRows[0].commission_pct) / 100));
+    }
+  }
+
+  await sql`
+    insert into sales (business_id, staff_id, description, payment_method, total_cents, commission_cents)
+    values (${business.id}, ${staffIdValue}, ${service.name}, ${method}, ${amountCents}, ${commissionCents})
+  `;
+
+  revalidatePath('/panel/caja');
   redirect(`/panel/caja?date=${date}&ok=1`);
 }
 

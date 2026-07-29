@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { sql } from '@/lib/db';
 import { requireBusiness } from '@/lib/auth';
-import { Card, Empty } from '@/components/panel-ui';
+import { Card, Empty, Input } from '@/components/panel-ui';
 
 type Cliente = {
   customer_phone: string; customer_name: string; visitas: number;
@@ -10,8 +10,10 @@ type Cliente = {
 
 const money = (cents: number) => `$${(cents / 100).toFixed(0)}`;
 
-export default async function Clientes() {
+export default async function Clientes(props: PageProps<'/panel/clientes'>) {
   const business = await requireBusiness();
+  const sp = await props.searchParams;
+  const q = typeof sp.q === 'string' ? sp.q.trim() : '';
 
   // El teléfono ya es el identificador único de cada clienta (así entra al
   // "gestionar mi cita" y así se agrupan sus citas): no hace falta una tabla
@@ -25,6 +27,7 @@ export default async function Clientes() {
       from appointments a
       left join sales s on s.appointment_id = a.id
      where a.business_id = ${business.id}
+       ${q ? sql`and (a.customer_name ilike ${'%' + q + '%'} or a.customer_phone ilike ${'%' + q + '%'})` : sql``}
      group by a.customer_phone
      order by ultima_visita desc
   `) as Cliente[];
@@ -35,8 +38,18 @@ export default async function Clientes() {
 
   return (
     <main className="mt-6 space-y-4">
+      <form className="flex">
+        <Input
+          name="q"
+          type="search"
+          defaultValue={q}
+          placeholder="Buscar por nombre o teléfono…"
+          className="w-full"
+        />
+      </form>
+
       {clientes.length === 0 ? (
-        <Empty>Aún no hay clientas con citas.</Empty>
+        <Empty>{q ? 'Ninguna clienta coincide con esa búsqueda.' : 'Aún no hay clientas con citas.'}</Empty>
       ) : (
         <Card>
           <ul className="divide-y divide-blush-100">
