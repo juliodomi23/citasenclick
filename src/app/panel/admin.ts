@@ -57,7 +57,7 @@ export async function saveService(form: FormData) {
       values (${business.id}, ${name}, ${duration}, ${buffer}, ${priceCents})
     `;
   }
-  refresh('servicios');
+  refresh('ajustes/servicios');
 }
 
 export async function toggleService(form: FormData) {
@@ -69,7 +69,7 @@ export async function toggleService(form: FormData) {
     update services set active = not active
      where id = ${id} and business_id = ${business.id}
   `;
-  refresh('servicios');
+  refresh('ajustes/servicios');
 }
 
 /* -------------------------------------------------------------------- equipo */
@@ -94,7 +94,7 @@ export async function saveStaff(form: FormData) {
       values (${business.id}, ${name}, ${commissionPct})
     `;
   }
-  refresh('equipo');
+  refresh('ajustes/equipo');
 }
 
 export async function toggleStaff(form: FormData) {
@@ -105,7 +105,7 @@ export async function toggleStaff(form: FormData) {
     update staff set active = not active
      where id = ${id} and business_id = ${business.id}
   `;
-  refresh('equipo');
+  refresh('ajustes/equipo');
 }
 
 /** Qué servicios da un especialista. Llegan como checkboxes con el mismo name. */
@@ -129,7 +129,7 @@ export async function setStaffServices(form: FormData) {
        where s.id = any(${serviceIds}::uuid[]) and s.business_id = ${business.id}
     `;
   }
-  refresh('equipo');
+  refresh('ajustes/equipo');
 }
 
 /* ------------------------------------------------------------------ horarios */
@@ -149,7 +149,7 @@ export async function addScheduleRule(form: FormData) {
     select ${staffId}, ${weekday}, ${start}::time, ${end}::time
       from staff st where st.id = ${staffId} and st.business_id = ${business.id}
   `;
-  refresh('horarios');
+  refresh('ajustes/horarios');
 }
 
 export async function deleteScheduleRule(form: FormData) {
@@ -161,7 +161,7 @@ export async function deleteScheduleRule(form: FormData) {
      using staff st
      where r.staff_id = st.id and r.id = ${id} and st.business_id = ${business.id}
   `;
-  refresh('horarios');
+  refresh('ajustes/horarios');
 }
 
 /** Copia el horario de un día a los otros seis. Es lo que pide todo negocio. */
@@ -184,7 +184,7 @@ export async function copyDayToAll(form: FormData) {
       cross join generate_series(0, 6) as d(weekday)
      where r.staff_id = ${staffId} and r.weekday = ${weekday} and d.weekday <> ${weekday}
   `;
-  refresh('horarios');
+  refresh('ajustes/horarios');
 }
 
 export async function addOverride(form: FormData) {
@@ -205,7 +205,7 @@ export async function addOverride(form: FormData) {
            ${closed ? null : start}::time, ${closed ? null : end}::time, ${reason}
       from staff st where st.id = ${staffId} and st.business_id = ${business.id}
   `;
-  refresh('horarios');
+  refresh('ajustes/horarios');
 }
 
 export async function deleteOverride(form: FormData) {
@@ -217,7 +217,7 @@ export async function deleteOverride(form: FormData) {
      using staff st
      where o.staff_id = st.id and o.id = ${id} and st.business_id = ${business.id}
   `;
-  refresh('horarios');
+  refresh('ajustes/horarios');
 }
 
 /* ------------------------------------------------------------------- ajustes */

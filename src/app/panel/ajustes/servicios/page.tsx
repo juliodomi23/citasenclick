@@ -1,6 +1,6 @@
 import { sql } from '@/lib/db';
 import { requireBusiness } from '@/lib/auth';
-import { saveService, toggleService } from '../admin';
+import { saveService, toggleService } from '../../admin';
 import { Card, Field, Input, Button, Empty, Guardado } from '@/components/panel-ui';
 
 type Service = {
@@ -8,7 +8,7 @@ type Service = {
   buffer_after_minutes: number; price_cents: number; active: boolean;
 };
 
-export default async function Servicios(props: PageProps<'/panel/servicios'>) {
+export default async function Servicios(props: PageProps<'/panel/ajustes/servicios'>) {
   const business = await requireBusiness();
   const q = await props.searchParams;
 

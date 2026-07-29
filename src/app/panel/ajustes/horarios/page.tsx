@@ -3,7 +3,7 @@ import { sql } from '@/lib/db';
 import { requireBusiness } from '@/lib/auth';
 import { DAYS, hhmm } from '@/lib/panel';
 import { todayIn } from '@/lib/dates';
-import { addScheduleRule, deleteScheduleRule, copyDayToAll, addOverride, deleteOverride } from '../admin';
+import { addScheduleRule, deleteScheduleRule, copyDayToAll, addOverride, deleteOverride } from '../../admin';
 import { Card, Field, Input, Button, Empty, Guardado } from '@/components/panel-ui';
 
 type Staff = { id: string; name: string };
@@ -12,7 +12,7 @@ type Override = {
   id: string; date: string; start_time: string | null; end_time: string | null; reason: string | null;
 };
 
-export default async function Horarios(props: PageProps<'/panel/horarios'>) {
+export default async function Horarios(props: PageProps<'/panel/ajustes/horarios'>) {
   const q = await props.searchParams;
   const business = await requireBusiness();
 
@@ -57,7 +57,7 @@ export default async function Horarios(props: PageProps<'/panel/horarios'>) {
             {staff.map((s) => (
               <Link
                 key={s.id}
-                href={`/panel/horarios?staff=${s.id}`}
+                href={`/panel/ajustes/horarios?staff=${s.id}`}
                 aria-current={s.id === current.id ? 'page' : undefined}
                 className={`flex min-h-11 cursor-pointer items-center whitespace-nowrap rounded-xl border px-4 text-sm transition-colors duration-200 ${
                   s.id === current.id

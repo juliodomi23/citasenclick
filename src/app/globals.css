@@ -76,21 +76,29 @@
   la página sin depender solo de la sombra.
 */
 .dark {
-  --color-cream: #170f14;
-  --color-blush-50: #241621;
-  --color-blush-100: #2c1a26;
-  --color-blush-200: #4a2438;
-  --color-surface: #211219;
+  /*
+    Antes: fondo casi negro puro (#170f14) + texto casi blanco puro
+    (#fce7f0) — el contraste máximo entre dos extremos es justo lo que hace
+    "difícil de leer" en pantalla: deslumbra, no descansa la vista. Los
+    dark mode que sí se leen bien (GitHub, Linear, VS Code) usan gris
+    oscuro, no negro, y texto hueso, no blanco — y la tarjeta se distingue
+    del fondo con un salto de luminosidad real, no uno de 2-3%.
+  */
+  --color-cream: #1a1317;
+  --color-blush-50: #2a1e24;
+  --color-blush-100: #33232b;
+  --color-blush-200: #4a2f3a;
+  --color-surface: #251a1f;
 
-  --color-border-control: #e58fb4;
+  --color-border-control: #c97ea0;
 
-  --color-ink: #fce7f0;
-  --color-ink-soft: #f3b8d4;
-  --color-ink-muted: #cf93b1;
+  --color-ink: #ede0e4;
+  --color-ink-soft: #d9b8c4;
+  --color-ink-muted: #ac8494;
 
   /* accent-700 es el tono de los links (text-accent-700): el original
      (be185d) es casi negro y desaparecía sobre el fondo oscuro. */
-  --color-accent-700: #f9a8d4;
+  --color-accent-700: #f0a8c9;
 
   --color-success-bg: #052e22;
   --color-success-border: #0d5a41;

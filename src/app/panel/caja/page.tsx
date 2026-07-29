@@ -155,27 +155,35 @@ export default async function Caja(props: PageProps<'/panel/caja'>) {
         )}
       </nav>
 
-      <Card>
-        <form className="flex flex-wrap items-end gap-3">
-          <div className="w-40">
-            <Field label="Desde">
-              <Input name="from" type="date" defaultValue={desde} required />
-            </Field>
-          </div>
-          <div className="w-40">
-            <Field label="Hasta">
-              <Input name="to" type="date" defaultValue={hasta} required />
-            </Field>
-          </div>
-          <Button type="submit" tone="ghost">Ver rango</Button>
-          <a
-            href={exportUrl}
-            className="ml-auto inline-flex min-h-11 cursor-pointer items-center text-sm text-accent-700 underline underline-offset-2"
-          >
-            Exportar CSV
-          </a>
-        </form>
-      </Card>
+      {/* Colapsado por defecto: el filtro por rango y el CSV son cosas que
+          se usan una vez al mes (pagar quincena, ver el mes), no cada vez
+          que se entra a Caja — tenerlos siempre abiertos era ruido. */}
+      <div className="flex items-center justify-between gap-3 px-1">
+        <details>
+          <summary className="inline-flex min-h-11 cursor-pointer list-none items-center text-sm text-accent-700 underline underline-offset-2 [&::-webkit-details-marker]:hidden">
+            Ver por rango de fechas
+          </summary>
+          <form className="mt-2 flex flex-wrap items-end gap-3 rounded-xl border border-blush-200 bg-surface p-4 shadow-soft">
+            <div className="w-40">
+              <Field label="Desde">
+                <Input name="from" type="date" defaultValue={desde} required />
+              </Field>
+            </div>
+            <div className="w-40">
+              <Field label="Hasta">
+                <Input name="to" type="date" defaultValue={hasta} required />
+              </Field>
+            </div>
+            <Button type="submit" tone="ghost">Ver rango</Button>
+          </form>
+        </details>
+        <a
+          href={exportUrl}
+          className="inline-flex min-h-11 shrink-0 cursor-pointer items-center text-sm text-accent-700 underline underline-offset-2"
+        >
+          Exportar CSV
+        </a>
+      </div>
 
       {/* Desde tablet horizontal: corte + especialista a la izquierda,
           vender producto + movimientos a la derecha — así se ve el corte
@@ -264,26 +272,31 @@ export default async function Caja(props: PageProps<'/panel/caja'>) {
                 )}
               </ul>
 
-              <form action={addCashMovement} className="mt-4 space-y-3 border-t border-blush-100 pt-4">
-                <input type="hidden" name="date" value={date} />
-                <div className="grid grid-cols-2 gap-3">
-                  <Field label="Movimiento">
-                    <Select name="type" defaultValue="retiro">
-                      <option value="apertura">Fondo inicial</option>
-                      <option value="retiro">Retiro</option>
-                      <option value="deposito">Depósito</option>
-                      <option value="cierre">Conteo final</option>
-                    </Select>
+              <details className="mt-4 border-t border-blush-100 pt-4">
+                <summary className="inline-flex min-h-11 cursor-pointer list-none items-center text-sm font-medium text-accent-700 [&::-webkit-details-marker]:hidden">
+                  + Registrar movimiento
+                </summary>
+                <form action={addCashMovement} className="mt-3 space-y-3">
+                  <input type="hidden" name="date" value={date} />
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="Movimiento">
+                      <Select name="type" defaultValue="retiro">
+                        <option value="apertura">Fondo inicial</option>
+                        <option value="retiro">Retiro</option>
+                        <option value="deposito">Depósito</option>
+                        <option value="cierre">Conteo final</option>
+                      </Select>
+                    </Field>
+                    <Field label="Monto" hint="MXN">
+                      <Input name="amount" type="number" inputMode="decimal" min={0} step="1" required />
+                    </Field>
+                  </div>
+                  <Field label="Nota" hint="opcional">
+                    <Input name="note" placeholder="Cambio para el día siguiente" maxLength={120} />
                   </Field>
-                  <Field label="Monto" hint="MXN">
-                    <Input name="amount" type="number" inputMode="decimal" min={0} step="1" required />
-                  </Field>
-                </div>
-                <Field label="Nota" hint="opcional">
-                  <Input name="note" placeholder="Cambio para el día siguiente" maxLength={120} />
-                </Field>
-                <Button type="submit" tone="ghost">Registrar movimiento</Button>
-              </form>
+                  <Button type="submit" tone="ghost">Registrar movimiento</Button>
+                </form>
+              </details>
             </Card>
           )}
         </div>
@@ -294,30 +307,35 @@ export default async function Caja(props: PageProps<'/panel/caja'>) {
             hint={products.length === 0 ? 'Aún no tienes productos activos. Agrega uno en Inventario.' : undefined}
           >
             {products.length > 0 && (
-              <form action={sellProduct} className="space-y-4">
-                <input type="hidden" name="date" value={date} />
-                <Field label="Producto">
-                  <Select name="product_id" required defaultValue="">
-                    <option value="" disabled>Elige un producto</option>
-                    {products.map((p) => (
-                      <option key={p.id} value={p.id}>{p.name} · {money(p.price_cents)}</option>
-                    ))}
-                  </Select>
-                </Field>
-                <div className="grid grid-cols-2 gap-3">
-                  <Field label="Cantidad">
-                    <Input name="qty" type="number" inputMode="numeric" min={1} step={1} defaultValue={1} required />
-                  </Field>
-                  <Field label="Método de pago">
-                    <Select name="payment_method" defaultValue="efectivo">
-                      <option value="efectivo">Efectivo</option>
-                      <option value="tarjeta">Tarjeta</option>
-                      <option value="transferencia">Transferencia</option>
+              <details>
+                <summary className="inline-flex min-h-11 cursor-pointer list-none items-center text-sm font-medium text-accent-700 [&::-webkit-details-marker]:hidden">
+                  + Registrar venta
+                </summary>
+                <form action={sellProduct} className="mt-3 space-y-4">
+                  <input type="hidden" name="date" value={date} />
+                  <Field label="Producto">
+                    <Select name="product_id" required defaultValue="">
+                      <option value="" disabled>Elige un producto</option>
+                      {products.map((p) => (
+                        <option key={p.id} value={p.id}>{p.name} · {money(p.price_cents)}</option>
+                      ))}
                     </Select>
                   </Field>
-                </div>
-                <Button type="submit">Registrar venta</Button>
-              </form>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="Cantidad">
+                      <Input name="qty" type="number" inputMode="numeric" min={1} step={1} defaultValue={1} required />
+                    </Field>
+                    <Field label="Método de pago">
+                      <Select name="payment_method" defaultValue="efectivo">
+                        <option value="efectivo">Efectivo</option>
+                        <option value="tarjeta">Tarjeta</option>
+                        <option value="transferencia">Transferencia</option>
+                      </Select>
+                    </Field>
+                  </div>
+                  <Button type="submit">Registrar venta</Button>
+                </form>
+              </details>
             )}
           </Card>
 

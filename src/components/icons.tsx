@@ -73,6 +73,42 @@ export const Sun = ({ className = 'h-5 w-5' }: Props) => (
   </svg>
 );
 
+export const Menu = ({ className = 'h-5 w-5' }: Props) => (
+  <svg {...base} className={className}><path d="M4 6h16M4 12h16M4 18h16" /></svg>
+);
+
+export const Wallet = ({ className = 'h-5 w-5' }: Props) => (
+  <svg {...base} className={className}>
+    <path d="M20 12V8H6a2 2 0 0 1 0-4h12v4" />
+    <path d="M4 6v12a2 2 0 0 0 2 2h14v-4" />
+    <path d="M18 12a2 2 0 0 0 0 4h4v-4Z" />
+  </svg>
+);
+
+export const Users = ({ className = 'h-5 w-5' }: Props) => (
+  <svg {...base} className={className}>
+    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+    <circle cx="9" cy="7" r="4" />
+    <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+  </svg>
+);
+
+export const Package = ({ className = 'h-5 w-5' }: Props) => (
+  <svg {...base} className={className}>
+    <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.73Z" />
+    <path d="M3.3 7 12 12l8.7-5" />
+    <path d="M12 22V12" />
+  </svg>
+);
+
+export const Settings = ({ className = 'h-5 w-5' }: Props) => (
+  <svg {...base} className={className}>
+    <circle cx="12" cy="12" r="3" />
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+  </svg>
+);
+
 export const Moon = ({ className = 'h-5 w-5' }: Props) => (
   <svg {...base} className={className}>
     <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5" />

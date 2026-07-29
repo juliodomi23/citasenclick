@@ -1,6 +1,6 @@
 import { sql } from '@/lib/db';
 import { requireBusiness } from '@/lib/auth';
-import { saveStaff, toggleStaff, setStaffServices } from '../admin';
+import { saveStaff, toggleStaff, setStaffServices } from '../../admin';
 import { Card, Field, Input, Button, Empty, Guardado } from '@/components/panel-ui';
 
 type Staff = {
@@ -8,7 +8,7 @@ type Staff = {
 };
 type Service = { id: string; name: string; active: boolean };
 
-export default async function Equipo(props: PageProps<'/panel/equipo'>) {
+export default async function Equipo(props: PageProps<'/panel/ajustes/equipo'>) {
   const business = await requireBusiness();
   const q = await props.searchParams;
 
