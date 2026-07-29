@@ -10,8 +10,12 @@ type Biz = { id: string; name: string; slug: string; timezone: string };
 type Appt = {
   id: string; starts_at: string; ends_at: string; status: string;
   customer_name: string; customer_phone: string; notes: string | null;
-  service_name: string; staff_name: string;
+  service_name: string; staff_name: string; staff_id: string;
 };
+
+/** Construye la URL del panel preservando los filtros activos. */
+const panelUrl = ({ date, view, staff }: { date: string; view: string; staff?: string | null }) =>
+  `/panel?date=${date}&view=${view}${staff ? `&staff=${staff}` : ''}`;
 
 const STATUS_LABEL: Record<string, string> = {
   confirmed: 'Confirmada',
@@ -54,15 +58,21 @@ export default async function Panel(props: PageProps<'/panel'>) {
     to = addDays(from, days.length);
   }
 
+  const staffList = (await sql`
+    select id, name from staff where business_id = ${biz.id} and active order by name
+  `) as { id: string; name: string }[];
+  const staffId = typeof q.staff === 'string' && staffList.some((s) => s.id === q.staff) ? q.staff : null;
+
   const appts = (await sql`
     select a.id, a.starts_at, a.ends_at, a.status, a.customer_name, a.customer_phone,
-           a.notes, s.name as service_name, st.name as staff_name
+           a.notes, s.name as service_name, st.name as staff_name, st.id as staff_id
       from appointments a
       join services s on s.id = a.service_id
       join staff st on st.id = a.staff_id
      where a.business_id = ${biz.id}
        and a.starts_at >= (${from}::timestamp at time zone ${biz.timezone})
        and a.starts_at <  (${to}::timestamp at time zone ${biz.timezone})
+       ${staffId ? sql`and a.staff_id = ${staffId}` : sql``}
      order by a.starts_at, st.name
   `) as Appt[];
 
@@ -72,7 +82,7 @@ export default async function Panel(props: PageProps<'/panel'>) {
 
   const today = todayIn(biz.timezone);
   const activas = appts.filter((a) => a.status === 'confirmed').length;
-  const nav = { date, view };
+  const nav = { date, view, staff: staffId };
 
   const header = month
     ? new Intl.DateTimeFormat('es-MX', { timeZone: biz.timezone, month: 'long', year: 'numeric' })
@@ -90,10 +100,19 @@ export default async function Panel(props: PageProps<'/panel'>) {
   return (
     <main>
       <div className="mt-5 inline-flex rounded-xl border border-blush-200 bg-surface p-1 shadow-soft">
-        <ViewTab date={date} view="day" active={!week && !month} label="Día" />
-        <ViewTab date={date} view="week" active={week} label="Semana" />
-        <ViewTab date={date} view="month" active={month} label="Mes" />
+        <ViewTab {...nav} view="day" active={!week && !month} label="Día" />
+        <ViewTab {...nav} view="week" active={week} label="Semana" />
+        <ViewTab {...nav} view="month" active={month} label="Mes" />
       </div>
+
+      {staffList.length > 1 && (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          <StaffChip {...nav} staff={null} label="Todos" active={!staffId} />
+          {staffList.map((s) => (
+            <StaffChip key={s.id} {...nav} staff={s.id} label={s.name} active={staffId === s.id} />
+          ))}
+        </div>
+      )}
 
       <nav className="mt-4 flex items-center justify-between gap-3">
         <StepLink {...nav} to={prevTo} dir="prev"
@@ -102,7 +121,7 @@ export default async function Panel(props: PageProps<'/panel'>) {
           <p className="truncate font-display text-lg text-ink first-letter:uppercase">{header}</p>
           {!enRangoActual && (
             <Link
-              href={`/panel?view=${nav.view}`}
+              href={panelUrl({ date: today, view: nav.view, staff: staffId })}
               className="inline-flex min-h-11 cursor-pointer items-center text-xs text-accent-700 underline underline-offset-2"
             >
               {month ? 'Ir a este mes' : week ? 'Ir a esta semana' : 'Ir a hoy'}
@@ -127,7 +146,7 @@ export default async function Panel(props: PageProps<'/panel'>) {
       </p>
 
       {month ? (
-        <MonthGrid days={days} byDay={byDay} today={today} monthOf={date} />
+        <MonthGrid days={days} byDay={byDay} today={today} monthOf={date} staff={staffId} />
       ) : (
         <div className="mt-3 space-y-7">
           {days.map((d) => {
@@ -170,8 +189,8 @@ export default async function Panel(props: PageProps<'/panel'>) {
     confirmadas si hay alguna. Los días de otro mes (para completar semanas)
     se ven apagados pero siguen siendo clicables. */
 function MonthGrid({
-  days, byDay, today, monthOf,
-}: { days: string[]; byDay: Map<string, Appt[]>; today: string; monthOf: string }) {
+  days, byDay, today, monthOf, staff,
+}: { days: string[]; byDay: Map<string, Appt[]>; today: string; monthOf: string; staff: string | null }) {
   const monthPrefix = monthOf.slice(0, 7);
   return (
     <div className="mt-3">
@@ -188,7 +207,7 @@ function MonthGrid({
           return (
             <Link
               key={d}
-              href={`/panel?date=${d}&view=day`}
+              href={panelUrl({ date: d, view: 'day', staff })}
               className={`flex min-h-16 flex-col items-center gap-1 rounded-xl border p-1.5 text-sm transition-colors duration-200 ${
                 inMonth
                   ? 'border-blush-200 bg-surface hover:border-accent-400 hover:bg-blush-50'
@@ -226,8 +245,8 @@ function Empty() {
 }
 
 function ApptCard({
-  appt: a, tz, date, view,
-}: { appt: Appt; tz: string; date: string; view: string }) {
+  appt: a, tz, date, view, staff,
+}: { appt: Appt; tz: string; date: string; view: string; staff: string | null }) {
   const closed = a.status !== 'confirmed';
   const hhmm = (iso: string) =>
     new Intl.DateTimeFormat('es-MX', {
@@ -287,15 +306,15 @@ function ApptCard({
 
       <div className="flex flex-wrap gap-2 border-t border-blush-100 bg-cream px-4 py-3">
         {closed ? (
-          <StatusButton {...{ date, view }} id={a.id} status="confirmed" label="Reactivar" />
+          <StatusButton {...{ date, view, staff }} id={a.id} status="confirmed" label="Reactivar" />
         ) : (
           <>
-            <StatusButton {...{ date, view }} id={a.id} status="completed" label="Atendida" primary
+            <StatusButton {...{ date, view, staff }} id={a.id} status="completed" label="Atendida" primary
               contexto={`la cita de ${a.customer_name} de las ${hhmm(a.starts_at)}`} />
-            <StatusButton {...{ date, view }} id={a.id} status="no_show" label="No llegó"
+            <StatusButton {...{ date, view, staff }} id={a.id} status="no_show" label="No llegó"
               contexto={`la cita de ${a.customer_name} de las ${hhmm(a.starts_at)}`} />
             {/* Separado del resto: es el único que la clienta nota si se toca por error. */}
-            <StatusButton {...{ date, view }} id={a.id} status="cancelled" label="Cancelar" danger
+            <StatusButton {...{ date, view, staff }} id={a.id} status="cancelled" label="Cancelar" danger
               className="ml-auto"
               contexto={`la cita de ${a.customer_name} de las ${hhmm(a.starts_at)}`} />
           </>
@@ -306,11 +325,11 @@ function ApptCard({
 }
 
 function ViewTab({
-  date, view, active, label,
-}: { date: string; view: string; active: boolean; label: string }) {
+  date, view, staff, active, label,
+}: { date: string; view: string; staff: string | null; active: boolean; label: string }) {
   return (
     <Link
-      href={`/panel?date=${date}&view=${view}`}
+      href={panelUrl({ date, view, staff })}
       aria-current={active ? 'page' : undefined}
       className={`flex min-h-11 cursor-pointer items-center rounded-lg px-4 text-sm transition-colors duration-200 ${
         active ? 'bg-accent-600 font-medium text-white' : 'text-ink-soft hover:bg-blush-50'
@@ -321,12 +340,31 @@ function ViewTab({
   );
 }
 
-function StepLink({
-  to, view, label, dir,
-}: { date: string; to: string; view: string; label: string; dir: 'prev' | 'next' }) {
+/** Filtro "Todos / Miguel / Andrea…" para ver la agenda de un solo especialista. */
+function StaffChip({
+  date, view, staff, label, active,
+}: { date: string; view: string; staff: string | null; label: string; active: boolean }) {
   return (
     <Link
-      href={`/panel?date=${to}&view=${view}`}
+      href={panelUrl({ date, view, staff })}
+      aria-current={active ? 'page' : undefined}
+      className={`flex min-h-9 cursor-pointer items-center rounded-full border px-3 text-sm transition-colors duration-200 ${
+        active
+          ? 'border-accent-600 bg-accent-600 font-medium text-white'
+          : 'border-blush-200 bg-surface text-ink-soft hover:bg-blush-50'
+      }`}
+    >
+      {label}
+    </Link>
+  );
+}
+
+function StepLink({
+  to, view, staff, label, dir,
+}: { date: string; to: string; view: string; staff: string | null; label: string; dir: 'prev' | 'next' }) {
+  return (
+    <Link
+      href={panelUrl({ date: to, view, staff })}
       aria-label={label}
       className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-blush-200 bg-surface text-ink-soft shadow-soft transition-colors duration-200 hover:border-accent-400 hover:bg-blush-50"
     >
@@ -336,9 +374,9 @@ function StepLink({
 }
 
 function StatusButton({
-  id, date, view, status, label, danger, primary, contexto, className = '',
+  id, date, view, staff, status, label, danger, primary, contexto, className = '',
 }: {
-  id: string; date: string; view: string; status: string; label: string;
+  id: string; date: string; view: string; staff: string | null; status: string; label: string;
   danger?: boolean; primary?: boolean; contexto?: string; className?: string;
 }) {
   // El fondo va en cada variante, nunca en la base: dos clases de background en
@@ -355,6 +393,7 @@ function StatusButton({
       <input type="hidden" name="id" value={id} />
       <input type="hidden" name="date" value={date} />
       <input type="hidden" name="view" value={view} />
+      {staff && <input type="hidden" name="staff" value={staff} />}
       <input type="hidden" name="status" value={status} />
       <button
         aria-label={contexto ? `${label} — ${contexto}` : undefined}

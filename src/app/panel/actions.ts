@@ -14,11 +14,12 @@ export async function setStatus(formData: FormData) {
   const status = String(formData.get('status') ?? '') as Status;
   const date = String(formData.get('date') ?? '');
   const view = String(formData.get('view') ?? '');
+  const staff = formData.get('staff');
 
   if (!isUuid(id) || !ALLOWED.includes(status)) return;
 
   const business = await requireBusiness();
-  const back = `/panel?date=${date}&view=${view}`;
+  const back = `/panel?date=${date}&view=${view}${staff && isUuid(String(staff)) ? `&staff=${staff}` : ''}`;
 
   try {
     // El business_id viene de la sesión: una cuenta solo puede tocar citas de
