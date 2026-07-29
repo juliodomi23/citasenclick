@@ -25,14 +25,23 @@ export default async function Caja(props: PageProps<'/panel/caja'>) {
   const date = typeof q.date === 'string' && isDate(q.date) ? q.date : todayIn(business.timezone);
   const today = todayIn(business.timezone);
 
+  // Rango: dos fechas en la URL en vez de una. Sin esto, pagar comisiones
+  // quincenales o ver cuánto se vendió en la semana obligaba a sumar día
+  // por día a mano.
+  const rangeFrom = typeof q.from === 'string' && isDate(q.from) ? q.from : null;
+  const rangeTo = typeof q.to === 'string' && isDate(q.to) ? q.to : null;
+  const isRange = !!(rangeFrom && rangeTo && rangeFrom <= rangeTo);
+  const desde = isRange ? rangeFrom! : date;
+  const hasta = isRange ? rangeTo! : date;
+
   const ventas = (await sql`
     select s.id, s.created_at, s.description, s.qty, s.payment_method, s.total_cents,
            s.commission_cents, st.name as staff_name
       from sales s
       left join staff st on st.id = s.staff_id
      where s.business_id = ${business.id}
-       and s.created_at >= (${date}::timestamp at time zone ${business.timezone})
-       and s.created_at <  ((${date}::date + 1)::timestamp at time zone ${business.timezone})
+       and s.created_at >= (${desde}::timestamp at time zone ${business.timezone})
+       and s.created_at <  ((${hasta}::date + 1)::timestamp at time zone ${business.timezone})
      order by s.created_at
   `) as Venta[];
 
@@ -56,56 +65,103 @@ export default async function Caja(props: PageProps<'/panel/caja'>) {
   }
   const totalComisiones = ventas.reduce((n, v) => n + v.commission_cents, 0);
 
-  const header = new Intl.DateTimeFormat('es-MX', {
-    timeZone: business.timezone, weekday: 'long', day: 'numeric', month: 'long',
-  }).format(new Date(`${date}T12:00:00Z`));
+  const fmtCorta = (d: string) =>
+    new Intl.DateTimeFormat('es-MX', { timeZone: business.timezone, day: 'numeric', month: 'short' })
+      .format(new Date(`${d}T12:00:00Z`));
+
+  const header = isRange
+    ? `${fmtCorta(desde)} — ${fmtCorta(hasta)}`
+    : new Intl.DateTimeFormat('es-MX', {
+        timeZone: business.timezone, weekday: 'long', day: 'numeric', month: 'long',
+      }).format(new Date(`${date}T12:00:00Z`));
 
   const hhmm = (iso: string) =>
     new Intl.DateTimeFormat('es-MX', {
       timeZone: business.timezone, hour: '2-digit', minute: '2-digit', hour12: false,
     }).format(new Date(iso));
 
+  const exportUrl = `/api/caja/export?from=${desde}&to=${hasta}`;
+
   return (
     <main className="mt-6 space-y-4">
       <Guardado visible={q.ok === '1'} />
 
       <nav className="flex items-center justify-between gap-3">
-        <Link
-          href={`/panel/caja?date=${addDays(date, -1)}`}
-          aria-label="Día anterior"
-          className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-blush-200 bg-surface text-ink-soft shadow-soft transition-colors duration-200 hover:border-accent-400 hover:bg-blush-50"
-        >
-          <ChevronLeft />
-        </Link>
+        {isRange ? (
+          <div className="h-11 w-11 shrink-0" aria-hidden />
+        ) : (
+          <Link
+            href={`/panel/caja?date=${addDays(date, -1)}`}
+            aria-label="Día anterior"
+            className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-blush-200 bg-surface text-ink-soft shadow-soft transition-colors duration-200 hover:border-accent-400 hover:bg-blush-50"
+          >
+            <ChevronLeft />
+          </Link>
+        )}
         <div className="min-w-0 text-center">
           <p className="truncate font-display text-lg text-ink first-letter:uppercase">{header}</p>
-          {date !== today && (
+          {isRange ? (
+            <Link
+              href="/panel/caja"
+              className="inline-flex min-h-11 cursor-pointer items-center text-xs text-accent-700 underline underline-offset-2"
+            >
+              Ver un solo día
+            </Link>
+          ) : date !== today ? (
             <Link
               href="/panel/caja"
               className="inline-flex min-h-11 cursor-pointer items-center text-xs text-accent-700 underline underline-offset-2"
             >
               Ir a hoy
             </Link>
-          )}
+          ) : null}
         </div>
-        <Link
-          href={`/panel/caja?date=${addDays(date, 1)}`}
-          aria-label="Día siguiente"
-          className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-blush-200 bg-surface text-ink-soft shadow-soft transition-colors duration-200 hover:border-accent-400 hover:bg-blush-50"
-        >
-          <ChevronRight />
-        </Link>
+        {isRange ? (
+          <div className="h-11 w-11 shrink-0" aria-hidden />
+        ) : (
+          <Link
+            href={`/panel/caja?date=${addDays(date, 1)}`}
+            aria-label="Día siguiente"
+            className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-blush-200 bg-surface text-ink-soft shadow-soft transition-colors duration-200 hover:border-accent-400 hover:bg-blush-50"
+          >
+            <ChevronRight />
+          </Link>
+        )}
       </nav>
+
+      <Card>
+        <form className="flex flex-wrap items-end gap-3">
+          <div className="w-40">
+            <Field label="Desde">
+              <Input name="from" type="date" defaultValue={desde} required />
+            </Field>
+          </div>
+          <div className="w-40">
+            <Field label="Hasta">
+              <Input name="to" type="date" defaultValue={hasta} required />
+            </Field>
+          </div>
+          <Button type="submit" tone="ghost">Ver rango</Button>
+          <a
+            href={exportUrl}
+            className="ml-auto inline-flex min-h-11 cursor-pointer items-center text-sm text-accent-700 underline underline-offset-2"
+          >
+            Exportar CSV
+          </a>
+        </form>
+      </Card>
 
       {/* Desde tablet horizontal: corte + especialista a la izquierda,
           vender producto + movimientos a la derecha — así se ve el corte
           completo mientras se registra una venta, sin scroll. */}
       <div className="space-y-4 lg:grid lg:grid-cols-2 lg:items-start lg:gap-4 lg:space-y-0">
         <div className="space-y-4">
-          <Card title="Corte del día">
+          <Card title={isRange ? 'Corte del rango' : 'Corte del día'}>
             <p className="font-display text-3xl text-accent-700">{money(total)}</p>
             {ventas.length === 0 ? (
-              <p className="mt-2 text-sm text-ink-muted">Sin cobros este día.</p>
+              <p className="mt-2 text-sm text-ink-muted">
+                Sin cobros {isRange ? 'en este rango' : 'este día'}.
+              </p>
             ) : (
               <ul className="mt-3 space-y-1 text-sm text-ink-soft">
                 {[...porMetodo].map(([m, c]) => (
@@ -121,7 +177,7 @@ export default async function Caja(props: PageProps<'/panel/caja'>) {
           {porBarbero.size > 0 && (
             <Card
               title="Por especialista"
-              hint={totalComisiones > 0 ? `Comisión total del día: ${money(totalComisiones)}` : undefined}
+              hint={totalComisiones > 0 ? `Comisión total: ${money(totalComisiones)}` : undefined}
             >
               <ul className="space-y-2 text-sm text-ink-soft">
                 {[...porBarbero].map(([n, v]) => (
