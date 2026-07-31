@@ -16,6 +16,8 @@ create table businesses (
   -- Marca por cliente: la fija el superadmin, no el dueño del negocio.
   logo_url text,
   theme text not null default 'rosa',
+  -- Link de reseña (Google, Facebook...). NULL = no se pide reseña.
+  review_url text,
   -- Los formularios del panel ya validan, pero la restricción vive aquí: es lo
   -- único que no se puede evadir. Un slot_granularity de 0 rompe el generador.
   constraint businesses_window_sane check (booking_window_days between 1 and 180),
@@ -74,9 +76,13 @@ create table services (
   price_cents int not null default 0,
   deposit_cents int not null default 0,
   active boolean not null default true,
+  -- Cada cuántos días conviene recordarle al cliente que le toca de nuevo.
+  -- NULL = desactivado.
+  rebook_after_days int,
   constraint services_duration_positive check (duration_minutes > 0 and duration_minutes <= 720),
   constraint services_buffer_sane check (buffer_after_minutes >= 0 and buffer_after_minutes <= 240),
-  constraint services_price_positive check (price_cents >= 0 and deposit_cents >= 0)
+  constraint services_price_positive check (price_cents >= 0 and deposit_cents >= 0),
+  constraint services_rebook_sane check (rebook_after_days is null or rebook_after_days between 1 and 365)
 );
 
 create table staff_services (
@@ -133,13 +139,30 @@ create table notifications (
   id bigserial primary key,
   appointment_id uuid not null references appointments on delete cascade,
   kind text not null check (kind in
-    ('confirmation','reminder_24h','reminder_2h','cancelled','rescheduled')),
+    ('confirmation','reminder_24h','reminder_2h','cancelled','rescheduled',
+     'new_booking_alert','rebook_reminder','review_request')),
   send_at timestamptz not null,
   sent_at timestamptz,
   error text,
   unique (appointment_id, kind)
 );
 create index on notifications (send_at) where sent_at is null;
+
+-- Lista de espera: cuando no hay horario, la clienta se anota y se le avisa
+-- por WhatsApp si se libera un lugar (cancelación o no-show). Va directo a
+-- n8n, no por la outbox: es first-come-first-served, no tiene sentido tarde.
+create table waitlist_entries (
+  id uuid primary key default gen_random_uuid(),
+  business_id uuid not null references businesses on delete cascade,
+  staff_id uuid references staff on delete cascade,   -- NULL = cualquiera
+  service_id uuid not null references services on delete cascade,
+  customer_name text not null,
+  customer_phone text not null,
+  date date not null,
+  notified_at timestamptz,
+  created_at timestamptz not null default now()
+);
+create index on waitlist_entries (business_id, service_id, date) where notified_at is null;
 
 -- Inventario y corte de caja.
 -- ponytail: una sola tabla "sales" en vez de sales + sale_items — cada cobro

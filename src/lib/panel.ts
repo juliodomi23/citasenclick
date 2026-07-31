@@ -2,7 +2,7 @@ export type PanelBusiness = {
   id: string; slug: string; name: string; timezone: string;
   whatsapp_phone: string | null; booking_window_days: number;
   min_notice_minutes: number; slot_granularity_minutes: number;
-  logo_url: string | null; theme: Theme;
+  logo_url: string | null; theme: Theme; review_url: string | null;
 };
 
 /** Temas de marca disponibles. Curados a mano (acento + superficies + borde

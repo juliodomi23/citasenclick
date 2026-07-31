@@ -12,6 +12,7 @@ const base: DueNotification = {
   staff_name: 'Miguel',
   business_name: 'Barbería El Cañón',
   business_phone: '+529611234567',
+  review_url: 'https://g.page/r/abc/review',
   timezone: 'America/Mexico_City',
   manage_token: 'abc123',
 };
@@ -41,11 +42,22 @@ test('manage_url queda usable y sin barra doble', () => {
 
 test('el payload trae todo lo que la plantilla de Meta necesita', () => {
   const p = buildPayload(base, 'https://mi-app.com');
-  for (const k of ['kind', 'nombre', 'telefono', 'servicio', 'especialista',
+  for (const k of ['kind', 'nombre', 'telefono', 'cliente_telefono', 'servicio', 'especialista',
                    'fecha_local', 'hora_local', 'negocio', 'manage_url'] as const) {
     assert.ok(p[k], `falta ${k}`);
   }
   assert.equal(p.telefono, '+529615558899', 'E.164, como lo quiere la API de Meta');
+});
+
+test('review_url viaja en el payload para review_request', () => {
+  const p = buildPayload({ ...base, kind: 'review_request' }, 'https://mi-app.com');
+  assert.equal(p.review_url, 'https://g.page/r/abc/review');
+});
+
+test('new_booking_alert manda al teléfono del negocio, no al del cliente', () => {
+  const p = buildPayload({ ...base, kind: 'new_booking_alert' }, 'https://mi-app.com');
+  assert.equal(p.telefono, '+529611234567', 'el dueño del negocio recibe el aviso, no el cliente');
+  assert.equal(p.cliente_telefono, '+529615558899', 'el negocio necesita el tel del cliente para poder contactarlo');
 });
 
 test('el secreto del cron no se puede evadir con vacíos ni prefijos', () => {

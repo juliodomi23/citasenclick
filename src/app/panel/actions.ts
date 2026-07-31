@@ -5,6 +5,8 @@ import { redirect } from 'next/navigation';
 import { sql } from '@/lib/db';
 import { isUuid } from '@/lib/validation';
 import { requireBusiness } from '@/lib/auth';
+import { notifyWaitlistIfFreed } from '@/lib/waitlist';
+import { scheduleCompletionNotifications } from '@/lib/notifications';
 
 const ALLOWED = ['confirmed', 'cancelled', 'no_show', 'completed'] as const;
 type Status = (typeof ALLOWED)[number];
@@ -35,6 +37,15 @@ export async function setStatus(formData: FormData) {
       redirect(`${back}&error=ocupado`);
     }
     throw e;
+  }
+
+  // Cancelar o marcar no-show libera el horario: avisar a quien esperaba
+  // en la lista. Completar dispara lo que dependa del servicio (reseña,
+  // recordatorio de re-agendar). Mejor esfuerzo: no bloquea la respuesta.
+  if (status === 'cancelled' || status === 'no_show') {
+    notifyWaitlistIfFreed(id).catch(() => {});
+  } else if (status === 'completed') {
+    scheduleCompletionNotifications(id).catch(() => {});
   }
 
   revalidatePath('/panel');

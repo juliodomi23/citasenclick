@@ -6,6 +6,7 @@ import { Card, Field, Input, Button, Empty, Guardado } from '@/components/panel-
 type Service = {
   id: string; name: string; duration_minutes: number;
   buffer_after_minutes: number; price_cents: number; active: boolean;
+  rebook_after_days: number | null;
 };
 
 export default async function Servicios(props: PageProps<'/panel/ajustes/servicios'>) {
@@ -13,7 +14,7 @@ export default async function Servicios(props: PageProps<'/panel/ajustes/servici
   const q = await props.searchParams;
 
   const services = (await sql`
-    select id, name, duration_minutes, buffer_after_minutes, price_cents, active
+    select id, name, duration_minutes, buffer_after_minutes, price_cents, active, rebook_after_days
       from services where business_id = ${business.id}
      order by active desc, name
   `) as Service[];
@@ -60,6 +61,12 @@ export default async function Servicios(props: PageProps<'/panel/ajustes/servici
                   </Field>
                 </div>
 
+                <Field label="Recordar cada" hint="días, vacío = desactivado">
+                  <Input name="rebook_after_days" type="number" inputMode="numeric"
+                    min={1} max={365} placeholder="ej. 21"
+                    defaultValue={s.rebook_after_days ?? ''} />
+                </Field>
+
                 <div className="flex flex-wrap gap-2">
                   <Button type="submit" aria-label={`Guardar ${s.name}`}>Guardar</Button>
                   <Button
@@ -98,6 +105,10 @@ export default async function Servicios(props: PageProps<'/panel/ajustes/servici
               <Input name="price" type="number" inputMode="decimal" min={0} step="1" defaultValue={0} />
             </Field>
           </div>
+          <Field label="Recordar cada" hint="días, opcional">
+            <Input name="rebook_after_days" type="number" inputMode="numeric"
+              min={1} max={365} placeholder="ej. 21" />
+          </Field>
           <Button type="submit">Agregar servicio</Button>
         </form>
       </Card>
@@ -105,6 +116,11 @@ export default async function Servicios(props: PageProps<'/panel/ajustes/servici
       <p className="px-1 text-sm text-ink-muted">
         Los servicios no se borran: se ocultan. Así las citas viejas conservan su
         historial.
+      </p>
+      <p className="px-1 text-sm text-ink-muted">
+        &quot;Recordar cada&quot; le manda un WhatsApp al cliente ese número de días
+        después de su cita, avisándole que ya le toca de nuevo. Déjalo vacío en
+        servicios que no se repiten en un intervalo fijo.
       </p>
       <p className="px-1 text-sm text-ink-muted">
         Duración + Limpieza es lo que se bloquea en el calendario por cada cita.

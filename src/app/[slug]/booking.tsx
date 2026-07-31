@@ -312,10 +312,13 @@ export function Booking({ slug, timezone, bookingWindowDays, whatsappPhone, serv
           )}
 
           {slots?.length === 0 && (
-            <Rescate
-              texto="No hay horarios disponibles ese día. Prueba con otro."
-              whatsappPhone={whatsappPhone}
-            />
+            <div className="space-y-3">
+              <Rescate
+                texto="No hay horarios disponibles ese día. Prueba con otro."
+                whatsappPhone={whatsappPhone}
+              />
+              <WaitlistJoin key={date} slug={slug} serviceId={service!.id} staffId={person!.id} date={date!} />
+            </div>
           )}
 
           {slots && slots.length > 0 && (
@@ -428,6 +431,91 @@ function Progress({ step }: { step: number }) {
         </li>
       ))}
     </ol>
+  );
+}
+
+/**
+ * Sin horario ese día: se anota a la lista de espera en vez de irse. Con
+ * `key={date}` en el llamador, cambiar de día remonta el componente y limpia
+ * el formulario solo, sin efectos para resetear estado.
+ */
+function WaitlistJoin({
+  slug, serviceId, staffId, date,
+}: { slug: string; serviceId: string; staffId: string; date: string }) {
+  const [open, setOpen] = useState(false);
+  const [joined, setJoined] = useState(false);
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  if (joined) {
+    return (
+      <p className="flex items-center gap-2 rounded-xl bg-blush-50 px-4 py-3 text-sm text-accent-700">
+        <Check className="h-4 w-4 shrink-0" />
+        Listo, te avisamos por WhatsApp si se libera un lugar.
+      </p>
+    );
+  }
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-blush-200 bg-surface px-4 text-sm font-medium text-ink transition-colors duration-200 hover:bg-blush-50"
+      >
+        Avísame si se libera un lugar
+      </button>
+    );
+  }
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setSending(true);
+    setError(null);
+    const res = await fetch('/api/waitlist', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slug, service: serviceId, staff: staffId, date, name, phone }),
+    });
+    setSending(false);
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      setError(d.error ?? 'Algo salió mal, intenta de nuevo');
+      return;
+    }
+    setJoined(true);
+  }
+
+  return (
+    <form onSubmit={submit} className="space-y-3 rounded-xl border border-blush-200 bg-surface p-4 shadow-soft">
+      <input
+        required
+        autoComplete="name"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="Como te llamas"
+        className="min-h-11 w-full rounded-xl border border-border-control bg-cream px-3 text-base text-ink placeholder:text-ink-muted"
+      />
+      <input
+        required
+        type="tel"
+        inputMode="numeric"
+        autoComplete="tel"
+        value={phone}
+        onChange={(e) => setPhone(e.target.value)}
+        placeholder="961 123 4567 (WhatsApp)"
+        className="min-h-11 w-full rounded-xl border border-border-control bg-cream px-3 text-base text-ink placeholder:text-ink-muted"
+      />
+      {error && <p role="alert" className="text-sm text-danger-text">{error}</p>}
+      <button
+        disabled={sending}
+        className="flex min-h-11 w-full cursor-pointer items-center justify-center rounded-xl bg-accent-600 px-4 text-sm font-medium text-white transition-colors duration-200 hover:bg-accent-700 disabled:cursor-wait disabled:opacity-60"
+      >
+        {sending ? 'Anotando…' : 'Avísame por WhatsApp'}
+      </button>
+    </form>
   );
 }
 

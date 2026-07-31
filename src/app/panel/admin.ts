@@ -6,6 +6,7 @@ import { sql, begin } from '@/lib/db';
 import { requireBusiness } from '@/lib/auth';
 import { isUuid, normalizePhoneMX } from '@/lib/validation';
 import { isDate } from '@/lib/dates';
+import { scheduleCompletionNotifications } from '@/lib/notifications';
 
 /**
  * Toda mutación del panel pasa por aquí. El negocio sale de la cookie de sesión,
@@ -39,22 +40,27 @@ export async function saveService(form: FormData) {
   const duration = int(form, 'duration_minutes');
   const buffer = int(form, 'buffer_after_minutes');
   const pesos = Number.parseFloat(str(form, 'price') || '0');
+  const rebookRaw = str(form, 'rebook_after_days');
+  const rebookDays = rebookRaw ? int(form, 'rebook_after_days') : null;
 
   // Un servicio de 0 minutos generaría slots infinitos; el precio sí puede ser 0.
   if (!name || duration <= 0 || duration > 720 || buffer < 0 || buffer > 240) return;
+  if (rebookDays !== null && (rebookDays < 1 || rebookDays > 365)) return;
   const priceCents = Math.round(Math.max(0, Number.isFinite(pesos) ? pesos : 0) * 100);
 
   if (id) {
     if (!isUuid(id)) return;
     await sql`
       update services set name = ${name}, duration_minutes = ${duration},
-             buffer_after_minutes = ${buffer}, price_cents = ${priceCents}
+             buffer_after_minutes = ${buffer}, price_cents = ${priceCents},
+             rebook_after_days = ${rebookDays}
        where id = ${id} and business_id = ${business.id}
     `;
   } else {
     await sql`
-      insert into services (business_id, name, duration_minutes, buffer_after_minutes, price_cents)
-      values (${business.id}, ${name}, ${duration}, ${buffer}, ${priceCents})
+      insert into services
+        (business_id, name, duration_minutes, buffer_after_minutes, price_cents, rebook_after_days)
+      values (${business.id}, ${name}, ${duration}, ${buffer}, ${priceCents}, ${rebookDays})
     `;
   }
   refresh('ajustes/servicios');
@@ -231,8 +237,16 @@ export async function saveSettings(form: FormData) {
   const windowDays = int(form, 'booking_window_days', 30);
   const minNotice = int(form, 'min_notice_minutes', 120);
   const granularity = int(form, 'slot_granularity_minutes', 15);
+  const reviewUrl = str(form, 'review_url') || null;
 
   if (!name) return;
+  if (reviewUrl) {
+    try {
+      new URL(reviewUrl);
+    } catch {
+      return;
+    }
+  }
   // Zona contra lista blanca: un valor inválido rompería el cálculo de slots.
   try {
     new Intl.DateTimeFormat('es-MX', { timeZone: timezone });
@@ -249,7 +263,7 @@ export async function saveSettings(form: FormData) {
     update businesses
        set name = ${name}, timezone = ${timezone}, whatsapp_phone = ${phone},
            booking_window_days = ${windowDays}, min_notice_minutes = ${minNotice},
-           slot_granularity_minutes = ${granularity}
+           slot_granularity_minutes = ${granularity}, review_url = ${reviewUrl}
      where id = ${business.id}
   `;
   refresh('ajustes');
@@ -332,6 +346,8 @@ export async function completeAppointment(form: FormData) {
         (${business.id}, ${appt.staff_id}, ${id}, ${appt.service_name}, ${method}, ${amountCents}, ${commissionCents})
     `;
   });
+
+  scheduleCompletionNotifications(id).catch(() => {});
 
   revalidatePath('/panel');
   revalidatePath('/panel/caja');

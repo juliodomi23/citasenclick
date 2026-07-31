@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { sql } from '@/lib/db';
+import { notifyWaitlistIfFreed } from '@/lib/waitlist';
 
 export async function cancelAppointment(formData: FormData) {
   const token = String(formData.get('token') ?? '');
@@ -26,6 +27,7 @@ export async function cancelAppointment(formData: FormData) {
       values (${rows[0].id}, 'cancelled', now())
       on conflict do nothing
     `;
+    await notifyWaitlistIfFreed(rows[0].id);
   }
 
   revalidatePath(`/c/${token}`);

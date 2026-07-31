@@ -1,21 +1,23 @@
 import { notFound } from 'next/navigation';
+import { headers } from 'next/headers';
 import { sql } from '@/lib/db';
 import { cancelAppointment } from './actions';
+import { icsStamp } from '@/lib/ics';
 import { Check, Calendar, Clock, MessageCircle, AlertTriangle } from '@/components/icons';
 
 type Row = {
-  id: string; status: string; starts_at: string; timezone: string;
+  id: string; status: string; starts_at: string; ends_at: string; timezone: string;
   business_name: string; whatsapp_phone: string | null;
   service_name: string; staff_name: string; customer_name: string;
-  min_notice_minutes: number;
+  min_notice_minutes: number; buffer_after_minutes: number;
 };
 
 export default async function Page(props: PageProps<'/c/[token]'>) {
   const { token } = await props.params;
   const rows = (await sql`
-    select a.id, a.status, a.starts_at, a.customer_name,
+    select a.id, a.status, a.starts_at, a.ends_at, a.customer_name,
            b.timezone, b.name as business_name, b.whatsapp_phone, b.min_notice_minutes,
-           s.name as service_name, st.name as staff_name
+           s.name as service_name, s.buffer_after_minutes, st.name as staff_name
       from appointments a
       join businesses b on b.id = a.business_id
       join services s on s.id = a.service_id
@@ -39,6 +41,25 @@ export default async function Page(props: PageProps<'/c/[token]'>) {
     new Date(appt.starts_at).getTime() - Date.now() > appt.min_notice_minutes * 60_000;
 
   const wa = appt.whatsapp_phone?.replace('+', '');
+
+  // Fin visible para la clienta: sin el buffer de limpieza, que es asunto del
+  // negocio (mismo criterio que el .ics — ver ics/route.ts).
+  const end = new Date(
+    new Date(appt.ends_at).getTime() - appt.buffer_after_minutes * 60_000
+  );
+  const googleCalendarUrl = `https://calendar.google.com/calendar/render?${new URLSearchParams({
+    action: 'TEMPLATE',
+    text: `${appt.service_name} — ${appt.business_name}`,
+    dates: `${icsStamp(new Date(appt.starts_at))}/${icsStamp(end)}`,
+    details: `Con ${appt.staff_name}.`,
+    location: appt.business_name,
+  })}`;
+
+  // En iPhone/iPad el .ics lo abre directo la app Calendario nativa; el botón
+  // de Google Calendar ahí casi siempre pide iniciar sesión primero. En
+  // cualquier otro dispositivo (la mayoría del tráfico es Android) es al
+  // revés. Se decide en el servidor, sin JS, leyendo el User-Agent.
+  const isIOS = /iPhone|iPad|iPod/.test((await headers()).get('user-agent') ?? '');
 
   return (
     <main className="mx-auto w-full max-w-md px-4 pb-16 pt-10">
@@ -86,13 +107,43 @@ export default async function Page(props: PageProps<'/c/[token]'>) {
             </p>
           ) : cancellable ? (
             <div className="space-y-3">
-              <a
-                href={`/c/${token}/ics`}
-                className="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl bg-blush-50 px-4 text-sm font-medium text-accent-700 transition-colors duration-200 hover:bg-blush-100"
-              >
-                <Calendar className="h-4 w-4" />
-                Agregar a mi calendario
-              </a>
+              {isIOS ? (
+                <>
+                  <a
+                    href={`/c/${token}/ics`}
+                    className="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl bg-blush-50 px-4 text-sm font-medium text-accent-700 transition-colors duration-200 hover:bg-blush-100"
+                  >
+                    <Calendar className="h-4 w-4" />
+                    Agregar a mi calendario
+                  </a>
+                  <a
+                    href={googleCalendarUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex min-h-11 cursor-pointer items-center justify-center gap-2 text-sm font-medium text-ink-muted underline underline-offset-2 hover:text-ink-soft"
+                  >
+                    Usar Google Calendar en vez
+                  </a>
+                </>
+              ) : (
+                <>
+                  <a
+                    href={googleCalendarUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl bg-blush-50 px-4 text-sm font-medium text-accent-700 transition-colors duration-200 hover:bg-blush-100"
+                  >
+                    <Calendar className="h-4 w-4" />
+                    Agregar a Google Calendar
+                  </a>
+                  <a
+                    href={`/c/${token}/ics`}
+                    className="flex min-h-11 cursor-pointer items-center justify-center gap-2 text-sm font-medium text-ink-muted underline underline-offset-2 hover:text-ink-soft"
+                  >
+                    Descargar .ics (Apple Calendar, Outlook)
+                  </a>
+                </>
+              )}
               {/*
                 Para la clienta cancelar no tiene "deshacer": un toque perdía la
                 cita para siempre. Dos pasos con <details> nativo, sin JS.

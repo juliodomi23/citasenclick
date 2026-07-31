@@ -46,6 +46,19 @@ export default async function Ajustes(props: PageProps<'/panel/ajustes'>) {
                 ))}
               </Select>
             </Field>
+
+            <Field label="Link de reseña" hint="Google, Facebook... opcional">
+              <Input
+                name="review_url"
+                type="url"
+                defaultValue={b.review_url ?? ''}
+                placeholder="https://g.page/r/tu-negocio/review"
+              />
+            </Field>
+            <p className="text-sm text-ink-muted">
+              Si lo llenas, a cada cliente le llega un WhatsApp pidiendo reseña
+              unas horas después de atenderlo. Vacío = no se pide.
+            </p>
           </div>
         </Card>
 

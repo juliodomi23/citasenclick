@@ -106,6 +106,9 @@ async function insertAppointment(a: {
   const r2 = a.start.minus({ hours: 2 });
   if (r24 > now) pending.push(['reminder_24h', r24]);
   if (r2 > now) pending.push(['reminder_2h', r2]);
+  // Aviso al negocio de que entró una cita nueva, para que no tenga que estar
+  // checando el panel. Va al número del negocio, no al del cliente (ver buildPayload).
+  if (a.business.whatsapp_phone) pending.push(['new_booking_alert', now]);
 
   for (const [kind, sendAt] of pending) {
     await sql`
