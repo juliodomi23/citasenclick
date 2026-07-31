@@ -22,6 +22,30 @@ services:
       timeout: 5s
       retries: 10
 
+  # ponytail: imagen ya hecha para exactamente esto (pg_dump programado +
+  # rotación) en vez de escribir cron + script a mano. Backups locales en un
+  # volumen aparte — protege de migraciones malas y borrados por accidente,
+  # no de que se pierda el disco completo del VPS. Para eso hace falta mandar
+  # copia fuera del servidor (S3, Google Drive...); pendiente, ver docs.
+  postgres-backup:
+    image: prodrigestivill/postgres-backup-local:17-alpine
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    user: postgres
+    volumes:
+      - pgbackups:/backups
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: citas
+      POSTGRES_USER: citas
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?falta POSTGRES_PASSWORD en .env}
+      SCHEDULE: "@daily"
+      BACKUP_KEEP_DAYS: 14
+      BACKUP_KEEP_WEEKS: 8
+      BACKUP_KEEP_MONTHS: 6
+
   citas-app:
     build: .
     restart: unless-stopped
@@ -48,3 +72,4 @@ services:
 
 volumes:
   pgdata:
+  pgbackups:
