@@ -12,6 +12,11 @@ services:
       # El esquema se aplica solo la PRIMERA vez que el volumen está vacío
       # (comportamiento estándar de la imagen oficial) — no en cada arranque.
       - ./db/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+      # Los backups, en SOLO LECTURA. Aquí es donde uno restaura (este
+      # contenedor es el que tiene psql y la consola de EasyPanel), y sin
+      # montarlos no se pueden ni ver ni probar. `:ro` para que un error
+      # tecleando no borre los respaldos desde el mismo lugar donde se usan.
+      - pgbackups:/backups:ro
     # Sin "ports": solo accesible dentro de la red interna del compose, ni
     # siquiera EasyPanel lo expone — mismo criterio que el puerto de la app.
     expose:

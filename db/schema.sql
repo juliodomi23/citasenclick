@@ -1,8 +1,35 @@
 -- Esquema de "Citas en un Click". Ver ARQUITECTURA.md §2.
--- ponytail: SQL plano en vez de migraciones Drizzle. Cuando haya un segundo
--- entorno que migrar sin poder recrear la DB, meter drizzle-kit.
+-- Esta es la fuente de verdad del esquema. La imagen oficial de Postgres lo
+-- corre solo la PRIMERA vez que el volumen está vacío (montado en
+-- /docker-entrypoint-initdb.d/), nunca en arranques siguientes.
+--
+-- ponytail: SQL plano + archivos numerados en vez de drizzle-kit. Cuando haya
+-- un segundo entorno de verdad, meter la herramienta.
 
 create extension if not exists btree_gist;
+
+-- Qué migraciones se aplicaron. Cada archivo `db/NNN-*.sql` se registra a sí
+-- mismo al final, así que correr una dos veces truena en el PRIMARY KEY en vez
+-- de pasar callada. Ver `db/009-registro-de-migraciones.sql` para el porqué.
+create table schema_migrations (
+  filename text primary key,
+  applied_at timestamptz not null default now()
+);
+
+-- Una base creada desde este archivo ya tiene TODO lo que las migraciones
+-- 001..NNN hacían, así que nacen registradas: el runner (o quien pegue SQL a
+-- mano) no debe volver a aplicarlas. Al agregar una migración nueva, agregar su
+-- nombre aquí también.
+insert into schema_migrations (filename) values
+  ('001-add-password-column.sql'),
+  ('002-caja-inventario.sql'),
+  ('003-personalizacion.sql'),
+  ('004-comisiones.sql'),
+  ('005-arqueo-caja.sql'),
+  ('006-fix-notification-kind-check.sql'),
+  ('007-waitlist-rebook-review.sql'),
+  ('008-limites-y-dedup.sql'),
+  ('009-registro-de-migraciones.sql');
 
 create table businesses (
   id uuid primary key default gen_random_uuid(),
