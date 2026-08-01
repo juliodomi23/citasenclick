@@ -2,6 +2,7 @@ import { sql } from '@/lib/db';
 import { getBusiness, ANY_STAFF } from '@/lib/availability';
 import { normalizePhoneMX, isUuid } from '@/lib/validation';
 import { isDate } from '@/lib/dates';
+import { hitLimit } from '@/lib/rate-limit';
 
 type Body = {
   slug?: string; service?: string; staff?: string; date?: string;
@@ -31,11 +32,25 @@ export async function POST(request: Request) {
   `) as { id: string }[];
   if (!services[0]) return Response.json({ error: 'servicio no encontrado' }, { status: 404 });
 
-  await sql`
-    insert into waitlist_entries (business_id, staff_id, service_id, customer_name, customer_phone, date)
-    values (${business.id}, ${staffId === ANY_STAFF ? null : staffId}, ${serviceId},
-            ${b.name.trim()}, ${phone}, ${date}::date)
-  `;
+  // Cada entrada puede acabar en un mensaje de WhatsApp que se paga.
+  if (await hitLimit('waitlist', phone)) {
+    return Response.json(
+      { error: 'ya te anotaste varias veces. Espera un rato o escríbele al negocio.' },
+      { status: 429 }
+    );
+  }
+
+  try {
+    await sql`
+      insert into waitlist_entries (business_id, staff_id, service_id, customer_name, customer_phone, date)
+      values (${business.id}, ${staffId === ANY_STAFF ? null : staffId}, ${serviceId},
+              ${b.name.trim()}, ${phone}, ${date}::date)
+    `;
+  } catch (e) {
+    // 23505 = ya estaba anotada para ese servicio/día/especialista. Para la
+    // clienta el resultado es el mismo, así que no es un error que deba ver.
+    if ((e as { code?: string }).code !== '23505') throw e;
+  }
 
   return Response.json({ ok: true }, { status: 201 });
 }

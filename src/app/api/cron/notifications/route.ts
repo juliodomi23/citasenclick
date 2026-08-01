@@ -1,4 +1,6 @@
 import { claimDue, buildPayload, release, recordError, secretMatches } from '@/lib/notifications';
+import { purgeOldWaitlist } from '@/lib/waitlist';
+import { purgeOldLimits } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -12,6 +14,11 @@ export async function GET(request: Request) {
   if (!secretMatches(auth?.replace(/^Bearer /, '') ?? null, process.env.CRON_SECRET)) {
     return Response.json({ error: 'no autorizado' }, { status: 401 });
   }
+
+  // Barrido de tablas que solo crecen. Va antes del webhook: si n8n no está
+  // configurado igual conviene que se limpien, y son dos DELETE por índice.
+  await purgeOldWaitlist();
+  await purgeOldLimits();
 
   const webhook = process.env.N8N_WEBHOOK_URL;
   if (!webhook) {

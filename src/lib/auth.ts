@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import { hash, compare } from 'bcrypt';
 import { sql } from './db';
+import { hitLimit } from './rate-limit';
 import type { PanelBusiness } from './panel';
 
 const COOKIE = 'sesion';
@@ -202,6 +203,12 @@ export async function attemptLogin(
   phoneE164: string,
   password: string
 ): Promise<LoginResult> {
+  // El tope va antes de tocar la tabla de usuarios, y por teléfono, no por
+  // usuario: si solo contara usuarios existentes, la diferencia de tiempo entre
+  // "bloqueado" y "no existe" delataría qué números están dados de alta.
+  // bcrypt hace lento cada intento, pero lento no es imposible sin un tope.
+  if (await hitLimit('login', phoneE164)) return { status: 'invalid' };
+
   const users = (await sql`
     select id, password from users where phone = ${phoneE164}
   `) as { id: string; password: string | null }[];

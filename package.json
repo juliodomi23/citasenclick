@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "tsx --test src/lib/*.test.ts"
+    "test": "tsx --test src/lib/*.test.ts",
+    "test:db": "tsx --test src/lib/*.dbtest.ts"
   },
   "dependencies": {
     "@types/bcrypt": "^6.0.0",

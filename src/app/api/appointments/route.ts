@@ -6,6 +6,7 @@ import {
 } from '@/lib/availability';
 import { normalizePhoneMX, isUuid } from '@/lib/validation';
 import { isDate } from '@/lib/dates';
+import { hitLimit } from '@/lib/rate-limit';
 
 type Body = {
   slug?: string; service?: string; staff?: string;
@@ -32,6 +33,16 @@ export async function POST(request: Request) {
 
   const business = await getBusiness(slug);
   if (!business) return Response.json({ error: 'negocio no encontrado' }, { status: 404 });
+
+  // El link es público: sin tope, una sola persona puede llenar la agenda del
+  // día con citas falsas y dejar al negocio sin horarios que vender (además de
+  // un WhatsApp pagado por cada una).
+  if (await hitLimit('booking', phone)) {
+    return Response.json(
+      { error: 'ya agendaste varias citas. Si necesitas más, escríbele al negocio.' },
+      { status: 429 }
+    );
+  }
 
   const start = DateTime.fromISO(slot, { zone: 'utc' });
   if (!start.isValid) return Response.json({ error: 'horario inválido' }, { status: 400 });

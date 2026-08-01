@@ -19,3 +19,15 @@ export const sql = ((...args: Parameters<postgres.Sql>) => getClient()(...args))
 // (p.ej. cobrar una cita: marcarla atendida + registrar la venta).
 export const begin = ((...args: Parameters<postgres.Sql['begin']>) =>
   getClient().begin(...args)) as postgres.Sql['begin'];
+
+/**
+ * Cierra el pool. La app no lo usa (vive mientras viva el proceso), pero un
+ * script o un test que termina se quedaría colgado esperando conexiones
+ * abiertas: `sql` es un wrapper y no hereda el .end() del cliente real.
+ */
+export const closeConnection = async () => {
+  if (client) {
+    await client.end();
+    client = null;
+  }
+};
