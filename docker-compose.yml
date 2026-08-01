@@ -50,9 +50,12 @@ services:
       POSTGRES_DB: citas
       POSTGRES_USER: citas
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?falta POSTGRES_PASSWORD en .env}
-      # TEMPORAL: cada 2 minutos, solo para comprobar que de verdad escribe.
-      # Se regresa a "@hourly" en cuanto se vea el primer archivo.
-      SCHEDULE: "*/2 * * * *"
+      # Cada hora, no cada día: los dumps son de kilobytes y este producto
+      # guarda citas que se agendan durante el día — perder 1 hora de reservas
+      # es muy distinto a perder 24. La rotación de abajo no crece por esto:
+      # las corridas de la hora se sobreescriben en /backups/last/, y
+      # daily/weekly/monthly guardan una por periodo.
+      SCHEDULE: "@hourly"
       BACKUP_KEEP_DAYS: 14
       BACKUP_KEEP_WEEKS: 8
       BACKUP_KEEP_MONTHS: 6
