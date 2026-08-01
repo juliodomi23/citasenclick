@@ -38,7 +38,11 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    user: postgres
+    # SIN `user:`. Se probó con `user: postgres` y el contenedor quedó en bucle
+    # de "BACKUP_DIR points to a file or folder with insufficient permissions"
+    # durante 23 horas sin generar UN SOLO backup: Docker crea el volumen
+    # nombrado con dueño root, y el usuario postgres no puede escribir dentro.
+    # La imagen arranca como root a propósito y baja privilegios ella sola.
     volumes:
       - pgbackups:/backups
     environment:
@@ -46,7 +50,9 @@ services:
       POSTGRES_DB: citas
       POSTGRES_USER: citas
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?falta POSTGRES_PASSWORD en .env}
-      SCHEDULE: "@daily"
+      # TEMPORAL: cada 2 minutos, solo para comprobar que de verdad escribe.
+      # Se regresa a "@hourly" en cuanto se vea el primer archivo.
+      SCHEDULE: "*/2 * * * *"
       BACKUP_KEEP_DAYS: 14
       BACKUP_KEEP_WEEKS: 8
       BACKUP_KEEP_MONTHS: 6
